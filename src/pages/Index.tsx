@@ -34,11 +34,7 @@ const Index = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
             Story Tales Teach
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Learn any concept through engaging Hinglish stories. Enter a topic below and let the magic of storytelling make learning fun and memorable. 
-
-
-
-This platform was created by Arshad ali Bhorania, who combined education and storytelling in a creative and magical way.</p>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Learn any concept through engaging Hinglish stories. Enter a topic below and let the magic of storytelling make learning fun and memorable.</p>
         </header>
 
         <div className="flex flex-col items-center justify-center">
