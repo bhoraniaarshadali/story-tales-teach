@@ -4,7 +4,8 @@ import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [story, setStory] = useState<{
@@ -65,6 +66,3 @@ const Index = () => {
 };
 
 export default Index;
-
-// Missing Button import
-import { Button } from "@/components/ui/button";
