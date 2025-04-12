@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 
 interface StoryFormProps {
   onSubmit: (topic: string) => void;
@@ -10,6 +12,15 @@ interface StoryFormProps {
 
 const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => {
   const [topic, setTopic] = useState("");
+  
+  const popularTopics = [
+    "Artificial Intelligence", 
+    "Blockchain", 
+    "Meditation", 
+    "Climate Change", 
+    "Quantum Physics",
+    "Time Management"
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,10 +29,21 @@ const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => {
     }
   };
 
+  const handleTopicClick = (selectedTopic: string) => {
+    setTopic(selectedTopic);
+    onSubmit(selectedTopic);
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
-      <div className="space-y-2">
-        <h2 className="text-lg font-medium">What would you like to learn about?</h2>
+    <Card className="w-full max-w-md p-6 space-y-6 bg-card">
+      <div>
+        <h2 className="text-xl font-semibold mb-2">What would you like to learn about?</h2>
+        <p className="text-muted-foreground text-sm">
+          Enter any topic and get a fun Hinglish story that explains it
+        </p>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           type="text"
           value={topic}
@@ -30,15 +52,41 @@ const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => {
           className="w-full"
           disabled={isLoading}
         />
+        
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={!topic.trim() || isLoading}
+        >
+          {isLoading ? (
+            "Creating Story..."
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Create Learning Story
+            </>
+          )}
+        </Button>
+      </form>
+      
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">Popular topics:</p>
+        <div className="flex flex-wrap gap-2">
+          {popularTopics.map((popularTopic) => (
+            <Button
+              key={popularTopic}
+              variant="outline"
+              size="sm"
+              onClick={() => handleTopicClick(popularTopic)}
+              disabled={isLoading}
+              className="text-xs"
+            >
+              {popularTopic}
+            </Button>
+          ))}
+        </div>
       </div>
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={!topic.trim() || isLoading}
-      >
-        {isLoading ? "Creating Story..." : "Create Learning Story"}
-      </Button>
-    </form>
+    </Card>
   );
 };
 
