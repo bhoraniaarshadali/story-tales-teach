@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
@@ -23,7 +22,10 @@ export interface Story {
   character?: {
     name: string;
     emoji: string;
+    traits?: string;
   };
+  emotions?: string[];
+  keyPoints?: string[];
 }
 
 const Index = () => {
@@ -50,24 +52,12 @@ const Index = () => {
     try {
       const generatedStory = await generateStory(topic);
       
-      const characters = [
-        { name: "Rohit", emoji: "👨‍🎓" },
-        { name: "Priya", emoji: "👩‍🔬" },
-        { name: "Vikram", emoji: "👨‍💻" },
-        { name: "Meera", emoji: "👩‍🏫" },
-        { name: "Ajay", emoji: "👨‍🚀" },
-        { name: "Neha", emoji: "👩‍⚕️" },
-        { name: "Raju", emoji: "👨‍🍳" }
-      ];
-      const character = characters[Math.floor(Math.random() * characters.length)];
-      
       const storyWithMeta: Story = {
         ...generatedStory,
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         topic,
-        isFavorite: false,
-        character
+        isFavorite: false
       };
       
       setStory(storyWithMeta);

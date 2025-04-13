@@ -1,3 +1,4 @@
+
 // This is the edge function that generates a story using Gemini API
 
 // Import the necessary packages
@@ -77,9 +78,72 @@ async function validateTopic(topic: string) {
   }
 }
 
+// Function to analyze topic and extract potential emotions
+async function analyzeTopicEmotions(topic: string) {
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!geminiApiKey) {
+    console.error("GEMINI_API_KEY not found for emotion analysis");
+    return { emotions: ["curious", "interested"], category: "general" };
+  }
+  
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + geminiApiKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `Analyze this topic: "${topic}"
+            
+            Identify:
+            1. The general category it falls into (e.g., "technology", "science", "arts", "business")
+            2. 3-5 emotions that someone might feel when learning about this topic
+            3. 3 key characteristics of this topic
+            
+            Output ONLY JSON in this exact format:
+            {
+              "category": "category name",
+              "emotions": ["emotion1", "emotion2", "emotion3"],
+              "characteristics": ["characteristic1", "characteristic2", "characteristic3"]
+            }`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 200,
+        }
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.candidates || data.candidates.length === 0) {
+      console.error("No candidates in topic analysis response");
+      return { emotions: ["curious", "interested"], category: "general" };
+    }
+    
+    const text = data.candidates[0].content.parts[0].text;
+    
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      } else {
+        return { emotions: ["curious", "interested"], category: "general" };
+      }
+    } catch (e) {
+      console.error("Error parsing emotion analysis JSON", e);
+      return { emotions: ["curious", "interested"], category: "general" };
+    }
+  } catch (error) {
+    console.error("Error analyzing topic emotions:", error);
+    return { emotions: ["curious", "interested"], category: "general" };
+  }
+}
+
 // Function to generate a character and details
-function generateCharacter(topic: string) {
-  // Generate character based on topic
+function generateCharacter(topic: string, category: string = "general") {
+  // Generate character based on topic category
   const characters = [
     { name: "Rohit", emoji: "👨‍🎓", traits: "curious and analytical" },
     { name: "Priya", emoji: "👩‍🔬", traits: "detail-oriented and methodical" },
@@ -90,7 +154,29 @@ function generateCharacter(topic: string) {
     { name: "Raju", emoji: "👨‍🍳", traits: "practical and experimental" }
   ];
   
-  return characters[Math.floor(Math.random() * characters.length)];
+  // Match character to topic category if possible
+  let filteredCharacters = characters;
+  
+  if (category === "technology" || category === "computer_science") {
+    filteredCharacters = characters.filter(char => 
+      char.traits.includes("tech-savvy") || char.traits.includes("logical") || char.traits.includes("analytical"));
+  } else if (category === "science" || category === "medicine") {
+    filteredCharacters = characters.filter(char => 
+      char.traits.includes("methodical") || char.traits.includes("analytical") || char.traits.includes("precise"));
+  } else if (category === "arts" || category === "humanities") {
+    filteredCharacters = characters.filter(char => 
+      char.traits.includes("creative") || char.traits.includes("articulate"));
+  } else if (category === "business" || category === "economics") {
+    filteredCharacters = characters.filter(char => 
+      char.traits.includes("practical") || char.traits.includes("methodical"));
+  }
+  
+  // If no matching characters, use all characters
+  if (filteredCharacters.length === 0) {
+    filteredCharacters = characters;
+  }
+  
+  return filteredCharacters[Math.floor(Math.random() * filteredCharacters.length)];
 }
 
 // Function to generate a story using Gemini API
@@ -100,14 +186,20 @@ async function generateStoryWithGemini(topic: string) {
     throw new Error("GEMINI_API_KEY not found in environment");
   }
   
-  // Generate a random character
-  const character = generateCharacter(topic);
+  // First analyze the topic to get emotions and category
+  const topicAnalysis = await analyzeTopicEmotions(topic);
+  console.log("Topic analysis:", JSON.stringify(topicAnalysis));
+  
+  // Generate a character that fits the topic
+  const character = generateCharacter(topic, topicAnalysis.category);
 
   // Create a conversational, engaging prompt for Gemini
   const prompt = `
   Kisi ek character ke through ek interesting aur relatable kahani banao jisme wo "${topic}" ko samajhne ki koshish kar raha ho.
   
   Character ka naam "${character.name}" hai, aur woh ${character.traits} hai.
+  
+  Character ke emotions mein ye shamil hain: ${topicAnalysis.emotions.join(", ")}
   
   Us topic ko step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin concept clear hona chahiye.
   
@@ -117,7 +209,9 @@ async function generateStoryWithGemini(topic: string) {
   {
     "title": "Catchy title in Hinglish related to the story and topic",
     "content": "The full story with proper paragraph breaks (use \\n\\n for paragraphs)",
-    "takeaway": "A summary of what was learned in 3-4 lines"
+    "takeaway": "A summary of what was learned in 3-4 lines",
+    "emotions": ${JSON.stringify(topicAnalysis.emotions)},
+    "keyPoints": ["key learning point 1", "key learning point 2", "key learning point 3"]
   }`;
 
   try {
@@ -156,8 +250,10 @@ async function generateStoryWithGemini(topic: string) {
           ...story,
           character: {
             name: character.name,
-            emoji: character.emoji
-          }
+            emoji: character.emoji,
+            traits: character.traits
+          },
+          topic: topic // Explicitly include the topic in the response
         };
       } else {
         throw new Error("Could not extract JSON from Gemini response");
@@ -175,6 +271,12 @@ async function generateStoryWithGemini(topic: string) {
 // Generate a fallback story if the API fails
 function generateFallbackStory(topic: string) {
   const character = generateCharacter(topic);
+  const emotions = ["curious", "confused", "determined", "excited"];
+  const keyPoints = [
+    `Understanding ${topic} requires breaking it down into smaller concepts`,
+    `Practical examples help in grasping ${topic} better`,
+    `Regular practice leads to mastery of ${topic}`
+  ];
   
   return {
     title: `${character.name} ka ${topic} se Dosti`,
@@ -182,8 +284,12 @@ function generateFallbackStory(topic: string) {
     takeaway: `${character.name} ne aaj seekha ki ${topic} ko samajhne ke liye zaruri hai usey real-life examples se connect karna. Complicated cheezein aksar simple analogies se samajh mein aati hain. Aur sabse important baat - learning ka process dheere dheere hota hai, ek dum se nahi. Jaise jaise concepts clear hote jate hain, confidence bhi badhta jata hai. Koi bhi naya concept sikhne ke liye patience aur practice dono zaruri hain.`,
     character: {
       name: character.name,
-      emoji: character.emoji
-    }
+      emoji: character.emoji,
+      traits: character.traits
+    },
+    emotions: emotions,
+    keyPoints: keyPoints,
+    topic: topic // Explicitly include the topic in the response
   };
 }
 
@@ -199,20 +305,25 @@ serve(async (req) => {
     const requestData = await req.json();
     const topic = requestData.topic;
     
-    // Basic validation
+    // Ensure we have the topic before proceeding
     if (!topic || typeof topic !== "string") {
       throw new Error("Invalid or missing topic");
     }
     
+    console.log(`Generating story for topic: "${topic}"`);
+    
     // Validate the topic using Gemini
     const validationResult = await validateTopic(topic);
+    console.log("Topic validation result:", JSON.stringify(validationResult));
     
     if (!validationResult.isValid) {
       return new Response(
         JSON.stringify({
           title: "Thoda Confusion Hai",
           content: `Yeh topic thoda ajeeb lag raha hai: ${validationResult.reason}\n\nKya aap koi aur topic try karna chahenge? Ya ise thoda aur clearly explain kar sakte hain?`,
-          takeaway: "Kripya ek specific aur clear topic dein jiske baare mein aap jaanna chahte hain."
+          takeaway: "Kripya ek specific aur clear topic dein jiske baare mein aap jaanna chahte hain.",
+          emotions: ["confused", "curious"],
+          topic: topic
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -223,6 +334,7 @@ serve(async (req) => {
 
     // Generate the story using Gemini API
     const story = await generateStoryWithGemini(topic);
+    console.log("Generated story with title:", story.title);
 
     // Return the generated story
     return new Response(JSON.stringify(story), {
@@ -239,6 +351,7 @@ serve(async (req) => {
       const requestData = await req.clone().json();
       if (requestData && requestData.topic && typeof requestData.topic === "string") {
         fallbackTopic = requestData.topic;
+        console.log(`Using fallback with original topic: "${fallbackTopic}"`);
       }
     } catch (parseError) {
       console.error("Could not parse request JSON in error handler:", parseError);

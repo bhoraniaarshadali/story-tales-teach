@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Clock, Search, BookOpen, Star } from "lucide-react";
+import { Heart, Clock, Search, BookOpen, Star, Brain } from "lucide-react";
 import { type Story } from "../pages/Index";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -117,12 +117,29 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
                         {formatDate(story.timestamp)}
                       </div>
                     )}
-                    {story.character?.name && (
-                      <div className="text-xs text-muted-foreground">
-                        Character: {story.character.name}
-                      </div>
-                    )}
                   </div>
+                  
+                  {story.character?.traits && (
+                    <div className="mt-1 text-xs text-muted-foreground flex items-center">
+                      <Brain className="h-3 w-3 mr-1" />
+                      {story.character.name}: {story.character.traits}
+                    </div>
+                  )}
+                  
+                  {story.emotions && story.emotions.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {story.emotions.slice(0, 3).map((emotion, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {emotion}
+                        </Badge>
+                      ))}
+                      {story.emotions.length > 3 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{story.emotions.length - 3}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="mt-3">
                     <Button 

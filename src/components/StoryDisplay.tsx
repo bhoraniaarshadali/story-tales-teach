@@ -3,7 +3,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart } from "lucide-react";
+import { Heart, Book, Brain, Lightbulb } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 
@@ -25,10 +25,16 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             </Avatar>
             <div>
               <h2 className="text-3xl font-bold text-primary">{story.title}</h2>
-              <div className="flex gap-2 mt-1">
+              <div className="flex flex-wrap gap-2 mt-1">
                 <Badge variant="outline" className="text-sm bg-accent/30">Hinglish Story</Badge>
                 {story.topic && (
                   <Badge variant="secondary" className="text-sm">{story.topic}</Badge>
+                )}
+                {story.character?.traits && (
+                  <Badge variant="outline" className="text-sm bg-muted">
+                    <Brain className="h-3 w-3 mr-1" />
+                    {story.character.traits}
+                  </Badge>
                 )}
               </div>
             </div>
@@ -46,6 +52,19 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
           )}
         </div>
         
+        {story.emotions && story.emotions.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Story emotions:</h3>
+            <div className="flex flex-wrap gap-2">
+              {story.emotions.map((emotion, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {emotion}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div className="prose prose-purple max-w-none">
           {story.content.split("\n\n").map((paragraph, i) => (
             <p key={i} className="mb-4 text-foreground/90">
@@ -55,9 +74,26 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
         </div>
         
         <div className="mt-8 p-4 bg-muted rounded-md border border-border">
-          <h3 className="text-lg font-semibold text-primary mb-2">🎓 Learning Takeaway</h3>
+          <h3 className="text-lg font-semibold text-primary mb-2 flex items-center">
+            <Lightbulb className="mr-2 h-5 w-5 text-amber-500" />
+            Learning Takeaway
+          </h3>
           <p className="italic text-foreground/80">{story.takeaway}</p>
         </div>
+        
+        {story.keyPoints && story.keyPoints.length > 0 && (
+          <div className="mt-4 p-4 bg-accent/10 rounded-md border border-border">
+            <h3 className="text-lg font-semibold text-primary mb-2 flex items-center">
+              <Book className="mr-2 h-5 w-5 text-primary" />
+              Key Points
+            </h3>
+            <ul className="list-disc list-inside space-y-1">
+              {story.keyPoints.map((point, index) => (
+                <li key={index} className="text-foreground/80">{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Card>
     </div>
   );
