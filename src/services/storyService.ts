@@ -24,6 +24,17 @@ export const generateStory = async (topic: string): Promise<StoryResponse> => {
       throw new Error(error.message || 'Failed to generate story');
     }
     
+    // Make sure we have valid data before returning
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response from generate-story function');
+    }
+    
+    // Validate that data has the required fields
+    if (!data.title || !data.content || !data.takeaway) {
+      console.error('Missing required fields in response:', data);
+      throw new Error('Story generation response is missing required fields');
+    }
+    
     return data as StoryResponse;
   } catch (error) {
     console.error('Error generating story:', error);

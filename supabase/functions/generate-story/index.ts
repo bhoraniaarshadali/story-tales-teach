@@ -232,8 +232,9 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generate-story function:", error);
     
-    // Generate a fallback story if there's an error
-    const fallbackStory = generateFallbackStory(req.json().then(data => data.topic).catch(() => "learning"));
+    // Generate a fallback story if there's an error - fix this part
+    const extractedTopic = await req.json().then(data => data.topic).catch(() => "learning");
+    const fallbackStory = generateFallbackStory(extractedTopic);
     
     return new Response(JSON.stringify(fallbackStory), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
