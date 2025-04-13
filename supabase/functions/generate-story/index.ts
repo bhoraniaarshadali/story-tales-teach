@@ -1,4 +1,3 @@
-
 // This is the edge function that generates a story using Gemini API
 
 // Import the necessary packages
@@ -196,8 +195,9 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body to get the topic
-    const { topic } = await req.json();
+    // Parse request body to get the topic - store it early since we'll need it for error handling
+    const requestData = await req.json();
+    const topic = requestData.topic;
     
     // Basic validation
     if (!topic || typeof topic !== "string") {
@@ -232,9 +232,21 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generate-story function:", error);
     
-    // Generate a fallback story if there's an error - fix this part
-    const extractedTopic = await req.json().then(data => data.topic).catch(() => "learning");
-    const fallbackStory = generateFallbackStory(extractedTopic);
+    let fallbackTopic = "learning";
+    
+    try {
+      // Try to get the original topic from the request even if we're in an error state
+      const requestData = await req.clone().json();
+      if (requestData && requestData.topic && typeof requestData.topic === "string") {
+        fallbackTopic = requestData.topic;
+      }
+    } catch (parseError) {
+      console.error("Could not parse request JSON in error handler:", parseError);
+      // Keep the default fallback topic
+    }
+    
+    // Generate a fallback story with the original topic if possible
+    const fallbackStory = generateFallbackStory(fallbackTopic);
     
     return new Response(JSON.stringify(fallbackStory), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

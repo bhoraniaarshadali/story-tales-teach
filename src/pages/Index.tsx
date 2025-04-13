@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
 import StoryHistory from "../components/StoryHistory";
 import LoadingSpinner from "../components/LoadingSpinner";
+import SessionTimer from "../components/SessionTimer";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, History } from "lucide-react";
@@ -118,6 +120,8 @@ const Index = () => {
             Learn any concept through engaging Hinglish stories. Enter a topic below and let the magic of storytelling make learning fun and memorable.
           </p>
         </header>
+
+        {story && <SessionTimer />}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-4xl mx-auto">
           <div className="flex justify-center mb-8">
