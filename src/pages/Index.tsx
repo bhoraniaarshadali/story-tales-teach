@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
@@ -7,7 +6,7 @@ import StoryHistory from "../components/StoryHistory";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, HistoryClock } from "lucide-react";
+import { ArrowUp, History } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -32,7 +31,6 @@ const Index = () => {
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
   const [activeTab, setActiveTab] = useState<string>("current");
 
-  // Load story history from localStorage on component mount
   useEffect(() => {
     const savedStories = localStorage.getItem("storyHistory");
     if (savedStories) {
@@ -40,7 +38,6 @@ const Index = () => {
     }
   }, []);
 
-  // Save story history to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
   }, [storyHistory]);
@@ -51,7 +48,6 @@ const Index = () => {
     try {
       const generatedStory = await generateStory(topic);
       
-      // Add character information
       const characters = [
         { name: "Rohit", emoji: "👨‍🎓" },
         { name: "Priya", emoji: "👩‍🔬" },
@@ -85,7 +81,6 @@ const Index = () => {
   };
 
   const toggleFavorite = (storyId: string) => {
-    // Update current story if it matches
     if (story && story.id === storyId) {
       setStory({
         ...story,
@@ -93,7 +88,6 @@ const Index = () => {
       });
     }
     
-    // Update in history
     setStoryHistory(prevHistory => 
       prevHistory.map(item => 
         item.id === storyId 
@@ -130,7 +124,7 @@ const Index = () => {
             <TabsList>
               <TabsTrigger value="current">Current Story</TabsTrigger>
               <TabsTrigger value="history">
-                <HistoryClock className="mr-2 h-4 w-4" />
+                <History className="mr-2 h-4 w-4" />
                 History
               </TabsTrigger>
             </TabsList>
