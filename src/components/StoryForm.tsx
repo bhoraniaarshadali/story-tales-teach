@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Sparkles, BookOpen, TrendingUp } from "lucide-react";
 
 interface StoryFormProps {
   onSubmit: (topic: string) => void;
@@ -19,7 +19,9 @@ const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => {
     "Meditation", 
     "Climate Change", 
     "Quantum Physics",
-    "Time Management"
+    "Time Management",
+    "Growth Mindset",
+    "Financial Literacy"
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,7 +39,10 @@ const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => {
   return (
     <Card className="w-full max-w-md p-6 space-y-6 bg-card">
       <div>
-        <h2 className="text-xl font-semibold mb-2">What would you like to learn about?</h2>
+        <h2 className="text-xl font-semibold mb-2 flex items-center">
+          <BookOpen className="mr-2 h-5 w-5 text-primary" />
+          What would you like to learn about?
+        </h2>
         <p className="text-muted-foreground text-sm">
           Enter any topic and get a fun Hinglish story that explains it
         </p>
@@ -70,7 +75,10 @@ const StoryForm: React.FC<StoryFormProps> = ({ onSubmit, isLoading }) => {
       </form>
       
       <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Popular topics:</p>
+        <p className="text-sm font-medium text-muted-foreground flex items-center">
+          <TrendingUp className="mr-1 h-4 w-4" />
+          Popular topics:
+        </p>
         <div className="flex flex-wrap gap-2">
           {popularTopics.map((popularTopic) => (
             <Button

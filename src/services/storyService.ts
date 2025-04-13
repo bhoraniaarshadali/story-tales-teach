@@ -9,13 +9,9 @@ interface StoryResponse {
 
 export const generateStory = async (topic: string): Promise<StoryResponse> => {
   try {
-    // Input validation
-    if (!isValidTopic(topic)) {
-      return {
-        title: "Thoda Confusion Hai",
-        content: "Yeh thoda ajeeb sa topic lag raha hai, kya aap thoda aur clear karke bata sakte hain? Ya ek example de sakte hain?",
-        takeaway: "Kripya ek specific topic dein jiske baare mein aap jaanna chahte hain."
-      };
+    // Better input validation using Gemini
+    if (!topic || topic.trim().length < 2) {
+      return createErrorStory("Please provide a valid topic with at least 2 characters");
     }
     
     // Call the Supabase Edge Function
@@ -37,7 +33,16 @@ export const generateStory = async (topic: string): Promise<StoryResponse> => {
   }
 };
 
-// Simple validation to check if topic is valid
+// Creates a friendly error message as a story
+const createErrorStory = (message: string): StoryResponse => {
+  return {
+    title: "Thoda Confusion Hai",
+    content: `${message}\n\nYeh thoda ajeeb sa topic lag raha hai, kya aap thoda aur clear karke bata sakte hain? Ya ek example de sakte hain?`,
+    takeaway: "Kripya ek specific topic dein jiske baare mein aap jaanna chahte hain."
+  };
+};
+
+// Simple validation to check if topic is valid - this will be improved by Gemini validation
 const isValidTopic = (topic: string): boolean => {
   if (!topic || topic.trim().length < 2) return false;
   

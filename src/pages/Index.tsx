@@ -1,27 +1,80 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
+import StoryHistory from "../components/StoryHistory";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, HistoryClock } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export interface Story {
+  title: string;
+  content: string;
+  takeaway: string;
+  id?: string;
+  isFavorite?: boolean;
+  timestamp?: string;
+  topic?: string;
+  character?: {
+    name: string;
+    emoji: string;
+  };
+}
 
 const Index = () => {
-  const [story, setStory] = useState<{
-    title: string;
-    content: string;
-    takeaway: string;
-  } | null>(null);
+  const [story, setStory] = useState<Story | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [prevTopic, setPrevTopic] = useState<string | null>(null);
+  const [storyHistory, setStoryHistory] = useState<Story[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("current");
+
+  // Load story history from localStorage on component mount
+  useEffect(() => {
+    const savedStories = localStorage.getItem("storyHistory");
+    if (savedStories) {
+      setStoryHistory(JSON.parse(savedStories));
+    }
+  }, []);
+
+  // Save story history to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
+  }, [storyHistory]);
 
   const handleSubmitTopic = async (topic: string) => {
     setIsLoading(true);
     setPrevTopic(topic);
     try {
       const generatedStory = await generateStory(topic);
-      setStory(generatedStory);
+      
+      // Add character information
+      const characters = [
+        { name: "Rohit", emoji: "👨‍🎓" },
+        { name: "Priya", emoji: "👩‍🔬" },
+        { name: "Vikram", emoji: "👨‍💻" },
+        { name: "Meera", emoji: "👩‍🏫" },
+        { name: "Ajay", emoji: "👨‍🚀" },
+        { name: "Neha", emoji: "👩‍⚕️" },
+        { name: "Raju", emoji: "👨‍🍳" }
+      ];
+      const character = characters[Math.floor(Math.random() * characters.length)];
+      
+      const storyWithMeta: Story = {
+        ...generatedStory,
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        topic,
+        isFavorite: false,
+        character
+      };
+      
+      setStory(storyWithMeta);
+      setStoryHistory(prev => [storyWithMeta, ...prev]);
+      setActiveTab("current");
       toast.success("Story created successfully!");
     } catch (error) {
       console.error("Error generating story:", error);
@@ -31,10 +84,39 @@ const Index = () => {
     }
   };
 
+  const toggleFavorite = (storyId: string) => {
+    // Update current story if it matches
+    if (story && story.id === storyId) {
+      setStory({
+        ...story,
+        isFavorite: !story.isFavorite
+      });
+    }
+    
+    // Update in history
+    setStoryHistory(prevHistory => 
+      prevHistory.map(item => 
+        item.id === storyId 
+          ? { ...item, isFavorite: !item.isFavorite } 
+          : item
+      )
+    );
+    
+    toast.success("Story updated!");
+  };
+
+  const viewHistoryStory = (storyId: string) => {
+    const selectedStory = storyHistory.find(item => item.id === storyId);
+    if (selectedStory) {
+      setStory(selectedStory);
+      setActiveTab("current");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
       <div className="container mx-auto px-4">
-        <header className="text-center mb-12">
+        <header className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
             Story Tales Teach
           </h1>
@@ -43,37 +125,60 @@ const Index = () => {
           </p>
         </header>
 
-        <div className="flex flex-col items-center justify-center">
-          <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-4xl mx-auto">
+          <div className="flex justify-center mb-8">
+            <TabsList>
+              <TabsTrigger value="current">Current Story</TabsTrigger>
+              <TabsTrigger value="history">
+                <HistoryClock className="mr-2 h-4 w-4" />
+                History
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="current" className="flex flex-col items-center justify-center">
+            <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
 
-          {isLoading && (
-            <div className="mt-8">
-              <LoadingSpinner />
-              <p className="mt-2 text-center text-muted-foreground animate-pulse">
-                Creating your story about {prevTopic}...
-              </p>
-            </div>
-          )}
+            {isLoading && (
+              <div className="mt-8">
+                <LoadingSpinner />
+                <p className="mt-2 text-center text-muted-foreground animate-pulse">
+                  Creating your story about {prevTopic}...
+                </p>
+              </div>
+            )}
 
-          <StoryDisplay story={story} />
+            <StoryDisplay 
+              story={story} 
+              onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
+            />
 
-          {story && (
-            <div className="mt-8 mb-16">
-              <Button
-                onClick={() =>
-                  window.scrollTo({
-                    top: 0,
-                    behavior: "smooth",
-                  })
-                }
-                className="flex items-center"
-              >
-                <ArrowUp className="mr-2 h-4 w-4" />
-                Learn Something New
-              </Button>
-            </div>
-          )}
-        </div>
+            {story && (
+              <div className="mt-8 mb-16">
+                <Button
+                  onClick={() =>
+                    window.scrollTo({
+                      top: 0,
+                      behavior: "smooth",
+                    })
+                  }
+                  className="flex items-center"
+                >
+                  <ArrowUp className="mr-2 h-4 w-4" />
+                  Learn Something New
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="history">
+            <StoryHistory 
+              stories={storyHistory} 
+              onViewStory={viewHistoryStory} 
+              onToggleFavorite={toggleFavorite}
+            />
+          </TabsContent>
+        </Tabs>
 
         <footer className="mt-20 text-center text-muted-foreground">
           <p>
