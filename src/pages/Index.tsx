@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
@@ -5,6 +6,7 @@ import StoryDisplay from "../components/StoryDisplay";
 import StoryHistory from "../components/StoryHistory";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimer from "../components/SessionTimer";
+import AccessibilityControls from "../components/AccessibilityControls";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, History } from "lucide-react";
@@ -102,7 +104,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
       <div className="container mx-auto px-4">
-        <header className="text-center mb-8">
+        <header className="text-center mb-8 relative">
+          <div className="absolute right-0 top-0">
+            <AccessibilityControls />
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
             Story Tales Teach
           </h1>
