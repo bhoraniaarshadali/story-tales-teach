@@ -25,17 +25,17 @@ export async function generateStoryWithGemini(topic: string) {
   
   Character ke emotions mein ye shamil hain: ${topicAnalysis.emotions.join(", ")}
   
-  Us topic ko step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin concept clear hona chahiye.
+  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin concept clear hona chahiye.
   
   Language simple Hindi-English mix (Hinglish) ho, jisme thoda casual touch ho jaise doston ke beech baat hoti hai.
   
   JSON format me output do:
   {
-    "title": "Catchy title in Hinglish related to the story and topic",
+    "title": "Catchy title in Hinglish related to the story and topic '${topic}'",
     "content": "The full story with proper paragraph breaks (use \\n\\n for paragraphs)",
-    "takeaway": "A summary of what was learned in 3-4 lines",
+    "takeaway": "A summary of what was learned about ${topic} in 3-4 lines",
     "emotions": ${JSON.stringify(topicAnalysis.emotions)},
-    "keyPoints": ["key learning point 1", "key learning point 2", "key learning point 3"]
+    "keyPoints": ["key learning point 1 about ${topic}", "key learning point 2 about ${topic}", "key learning point 3 about ${topic}"]
   }`;
 
   try {

@@ -1,162 +1,127 @@
 
 import React from "react";
-import { useAccessibility, VOICE_OPTIONS } from "../contexts/AccessibilityContext";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Type, Contrast, Volume2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
+import { Settings, Type, Volume2, VolumeX } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useAccessibility } from "../contexts/AccessibilityContext";
+import { toast } from "sonner";
 
-const AccessibilityControls: React.FC = () => {
-  const {
-    textSize,
-    highContrastMode,
-    setTextSize,
-    toggleHighContrastMode,
+const AccessibilityControls = () => {
+  const { 
+    textSize, 
+    setTextSize, 
+    useElevenLabs, 
+    setUseElevenLabs,
     selectedVoice,
     setSelectedVoice,
-    useElevenLabs,
-    setUseElevenLabs
+    voiceOptions
   } = useAccessibility();
 
   const handleVoiceChange = (voiceId: string) => {
-    const voice = VOICE_OPTIONS.find(v => v.id === voiceId);
-    if (voice) {
-      setSelectedVoice(voice);
-    }
+    setSelectedVoice(voiceId as any);
+    toast.success(`Voice changed to ${voiceOptions.find(v => v.id === voiceId)?.name || 'selected voice'}`);
   };
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="rounded-full" aria-label="Accessibility settings">
-          <Settings className="h-4 w-4" />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Accessibility settings">
+          <Settings className="h-5 w-5" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="space-y-4">
-          <h4 className="font-medium text-sm">Accessibility Settings</h4>
-          
-          <Tabs defaultValue="text" className="w-full">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="text" className="flex items-center justify-center">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 p-2">
+        <DropdownMenuLabel className="font-normal text-muted-foreground">
+          Accessibility Settings
+        </DropdownMenuLabel>
+        
+        <DropdownMenuSeparator />
+        
+        <div className="p-2">
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium flex items-center">
                 <Type className="h-4 w-4 mr-2" />
-                <span>Text</span>
-              </TabsTrigger>
-              <TabsTrigger value="contrast" className="flex items-center justify-center">
-                <Contrast className="h-4 w-4 mr-2" />
-                <span>Display</span>
-              </TabsTrigger>
-              <TabsTrigger value="audio" className="flex items-center justify-center">
+                Text Size
+              </label>
+            </div>
+            <Select value={textSize} onValueChange={(value) => setTextSize(value as any)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select text size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Text Size</SelectLabel>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium flex items-center">
                 <Volume2 className="h-4 w-4 mr-2" />
-                <span>Audio</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="text" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <h5 className="text-sm font-medium">Text Size</h5>
-                <div className="flex gap-2">
-                  <Button 
-                    variant={textSize === "small" ? "default" : "outline"} 
-                    onClick={() => setTextSize("small")}
-                    className="flex-1"
-                    size="sm"
-                  >
-                    Small
-                  </Button>
-                  <Button 
-                    variant={textSize === "medium" ? "default" : "outline"}
-                    onClick={() => setTextSize("medium")}
-                    className="flex-1"
-                    size="sm"
-                  >
-                    Medium
-                  </Button>
-                  <Button 
-                    variant={textSize === "large" ? "default" : "outline"}
-                    onClick={() => setTextSize("large")}
-                    className="flex-1"
-                    size="sm"
-                  >
-                    Large
-                  </Button>
-                </div>
+                Use ElevenLabs Voice
+              </label>
+              <Switch
+                checked={useElevenLabs}
+                onCheckedChange={(checked) => {
+                  setUseElevenLabs(checked);
+                  toast.success(checked 
+                    ? "Using ElevenLabs for better voice quality" 
+                    : "Using browser's built-in speech");
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Toggle to use high-quality ElevenLabs voice
+            </p>
+          </div>
+
+          {useElevenLabs && (
+            <div className="mb-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">Select Voice</label>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="contrast" className="pt-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="high-contrast">High Contrast Mode</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Enhance visibility with higher contrast colors
-                  </p>
-                </div>
-                <Switch
-                  id="high-contrast"
-                  checked={highContrastMode}
-                  onCheckedChange={toggleHighContrastMode}
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="audio" className="space-y-4 pt-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="elevenlabs-tts">Enhanced Text-to-Speech</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Use ElevenLabs for high-quality narration
-                  </p>
-                </div>
-                <Switch
-                  id="elevenlabs-tts"
-                  checked={useElevenLabs}
-                  onCheckedChange={setUseElevenLabs}
-                />
-              </div>
-              
-              {useElevenLabs && (
-                <div className="space-y-2">
-                  <Label htmlFor="voice-select">Select Voice</Label>
-                  <Select 
-                    value={selectedVoice.id} 
-                    onValueChange={handleVoiceChange}
-                  >
-                    <SelectTrigger id="voice-select">
-                      <SelectValue placeholder="Select a voice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VOICE_OPTIONS.map((voice) => (
-                        <SelectItem key={voice.id} value={voice.id}>
-                          {voice.name} {voice.description && `- ${voice.description}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              <p className="text-sm text-muted-foreground">
-                Text-to-speech is available for all stories. Click the speaker icon on any story to listen.
-              </p>
-            </TabsContent>
-          </Tabs>
+              <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select voice" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Voices</SelectLabel>
+                    {voiceOptions.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id}>
+                        {voice.name} - {voice.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

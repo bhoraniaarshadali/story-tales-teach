@@ -1,208 +1,179 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "../integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
-// Voice options for ElevenLabs
-export type VoiceOption = {
-  id: string;
+type TextSize = "small" | "medium" | "large";
+type VoiceId = "9BWtsMINqrJLrRacOk9x" | "CwhRBWXzGAHq8TQ4Fs17" | "XB0fDUnXU5powFXDhCwa";
+
+interface VoiceOption {
+  id: VoiceId;
   name: string;
-  description?: string;
-};
-
-// Available voices
-export const VOICE_OPTIONS: VoiceOption[] = [
-  { id: "9BWtsMINqrJLrRacOk9x", name: "Aria", description: "Narration Queen 👑" },
-  { id: "CwhRBWXzGAHq8TQ4Fs17", name: "Roger", description: "Perfect dost explaining stuff" },
-  { id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte", description: "High energy & animated, great for humor" }
-];
-
-interface AccessibilityContextType {
-  textSize: "small" | "medium" | "large";
-  highContrastMode: boolean;
-  speakText: (text: string) => void;
-  isSpeaking: boolean;
-  stopSpeaking: () => void;
-  setTextSize: (size: "small" | "medium" | "large") => void;
-  toggleHighContrastMode: () => void;
-  selectedVoice: VoiceOption;
-  setSelectedVoice: (voice: VoiceOption) => void;
-  useElevenLabs: boolean;
-  setUseElevenLabs: (use: boolean) => void;
+  description: string;
 }
 
-const AccessibilityContext = createContext<AccessibilityContextType | null>(null);
+interface AccessibilityContextType {
+  textSize: TextSize;
+  setTextSize: (size: TextSize) => void;
+  useElevenLabs: boolean;
+  setUseElevenLabs: (use: boolean) => void;
+  selectedVoice: VoiceId;
+  setSelectedVoice: (voice: VoiceId) => void;
+  speakText: (text: string) => void;
+  stopSpeaking: () => void;
+  isSpeaking: boolean;
+  voiceOptions: VoiceOption[];
+}
 
-export const useAccessibility = () => {
-  const context = useContext(AccessibilityContext);
-  if (!context) {
-    throw new Error("useAccessibility must be used within an AccessibilityProvider");
-  }
-  return context;
-};
+const defaultVoice = "9BWtsMINqrJLrRacOk9x";  // Aria
+
+const AccessibilityContext = createContext<AccessibilityContextType>({
+  textSize: "medium",
+  setTextSize: () => {},
+  useElevenLabs: false,
+  setUseElevenLabs: () => {},
+  selectedVoice: defaultVoice,
+  setSelectedVoice: () => {},
+  speakText: () => {},
+  stopSpeaking: () => {},
+  isSpeaking: false,
+  voiceOptions: [],
+});
+
+export const useAccessibility = () => useContext(AccessibilityContext);
 
 export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [textSize, setTextSize] = useState<"small" | "medium" | "large">(() => {
-    const savedSize = localStorage.getItem("textSize");
-    return (savedSize as "small" | "medium" | "large") || "medium";
-  });
-  
-  const [highContrastMode, setHighContrastMode] = useState<boolean>(() => {
-    const savedMode = localStorage.getItem("highContrastMode");
-    return savedMode ? savedMode === "true" : false;
-  });
-  
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(() => {
-    const savedVoice = localStorage.getItem("selectedVoice");
-    return savedVoice ? JSON.parse(savedVoice) : VOICE_OPTIONS[0];
+  const [textSize, setTextSize] = useState<TextSize>(() => {
+    const saved = localStorage.getItem("textSize");
+    return (saved as TextSize) || "medium";
   });
   
   const [useElevenLabs, setUseElevenLabs] = useState<boolean>(() => {
-    const savedUseElevenLabs = localStorage.getItem("useElevenLabs");
-    return savedUseElevenLabs ? savedUseElevenLabs === "true" : false;
+    const saved = localStorage.getItem("useElevenLabs");
+    return saved === "true";
   });
   
-  const speechSynthesis = typeof window !== 'undefined' ? window.speechSynthesis : null;
+  const [selectedVoice, setSelectedVoice] = useState<VoiceId>(() => {
+    const saved = localStorage.getItem("selectedVoice");
+    return (saved as VoiceId) || defaultVoice;
+  });
   
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  
+  const voiceOptions: VoiceOption[] = [
+    { id: "9BWtsMINqrJLrRacOk9x", name: "Aria", description: "Narration Queen 👑" },
+    { id: "CwhRBWXzGAHq8TQ4Fs17", name: "Roger", description: "Perfect dost explaining stuff" },
+    { id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte", description: "High energy & animated, great for humor" }
+  ];
+
   useEffect(() => {
     localStorage.setItem("textSize", textSize);
-    document.documentElement.setAttribute("data-text-size", textSize);
   }, [textSize]);
-  
-  useEffect(() => {
-    localStorage.setItem("highContrastMode", String(highContrastMode));
-    if (highContrastMode) {
-      document.documentElement.classList.add("high-contrast");
-    } else {
-      document.documentElement.classList.remove("high-contrast");
-    }
-  }, [highContrastMode]);
-  
-  useEffect(() => {
-    localStorage.setItem("selectedVoice", JSON.stringify(selectedVoice));
-  }, [selectedVoice]);
-  
+
   useEffect(() => {
     localStorage.setItem("useElevenLabs", String(useElevenLabs));
   }, [useElevenLabs]);
-  
-  // Clean up speech synthesis when component unmounts
+
+  useEffect(() => {
+    localStorage.setItem("selectedVoice", selectedVoice);
+  }, [selectedVoice]);
+
+  // Clean up audio when component unmounts
   useEffect(() => {
     return () => {
-      if (speechSynthesis) {
-        speechSynthesis.cancel();
+      if (audio) {
+        audio.pause();
+        audio.src = "";
       }
     };
-  }, []);
-  
+  }, [audio]);
+
   const speakText = async (text: string) => {
-    // If already speaking, stop first
-    if (isSpeaking) {
-      stopSpeaking();
-    }
-    
-    setIsSpeaking(true);
-    
-    if (useElevenLabs) {
-      try {
-        // Call Supabase Edge Function for ElevenLabs TTS
-        const { data, error } = await supabase.functions.invoke('text-to-speech', {
-          body: { 
-            text, 
-            voiceId: selectedVoice.id 
-          }
-        });
-        
-        if (error) {
-          console.error("Error generating speech with ElevenLabs:", error);
-          // Fallback to browser TTS if ElevenLabs fails
-          useBrowserTTS(text);
-          return;
-        }
-        
-        if (data?.audioContent) {
-          // Play audio from the base64 content
-          const audioSrc = `data:audio/mpeg;base64,${data.audioContent}`;
-          const audio = new Audio(audioSrc);
-          
-          audio.onended = () => {
-            setIsSpeaking(false);
-          };
-          
-          audio.onerror = () => {
-            console.error("Error playing audio");
-            setIsSpeaking(false);
-          };
-          
-          audio.play();
-        } else {
-          console.error("No audio content returned from ElevenLabs");
-          // Fallback to browser TTS
-          useBrowserTTS(text);
-        }
-      } catch (error) {
-        console.error("Error with ElevenLabs TTS:", error);
-        // Fallback to browser TTS
-        useBrowserTTS(text);
+    try {
+      // Stop any current audio playing
+      if (audio) {
+        audio.pause();
+        audio.src = "";
+        setAudio(null);
       }
-    } else {
-      useBrowserTTS(text);
-    }
-  };
-  
-  const useBrowserTTS = (text: string) => {
-    if (speechSynthesis) {
-      // Cancel any ongoing speech
-      speechSynthesis.cancel();
       
-      const utterance = new SpeechSynthesisUtterance(text);
       setIsSpeaking(true);
       
-      utterance.onend = () => {
-        setIsSpeaking(false);
-      };
-      
-      utterance.onerror = () => {
-        setIsSpeaking(false);
-      };
-      
-      speechSynthesis.speak(utterance);
+      if (useElevenLabs) {
+        // Use ElevenLabs TTS service
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: { 
+            text,
+            voiceId: selectedVoice
+          }
+        });
+
+        if (error) {
+          console.error("Error calling text-to-speech function:", error);
+          fallbackSpeech(text);
+          return;
+        }
+
+        // Create audio from the base64 data
+        const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        setAudio(newAudio);
+        
+        newAudio.onended = () => setIsSpeaking(false);
+        newAudio.onerror = () => {
+          console.error("Audio playback error");
+          setIsSpeaking(false);
+        };
+        
+        await newAudio.play();
+      } else {
+        // Use native browser TTS
+        fallbackSpeech(text);
+      }
+    } catch (error) {
+      console.error("Error in speakText:", error);
+      setIsSpeaking(false);
+      fallbackSpeech(text);
     }
   };
-  
-  const stopSpeaking = () => {
-    if (speechSynthesis) {
-      speechSynthesis.cancel();
+
+  const fallbackSpeech = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      console.error("Browser doesn't support speech synthesis");
+      setIsSpeaking(false);
     }
-    
-    // Also stop any audio elements that might be playing
-    const audios = document.querySelectorAll('audio');
-    audios.forEach(audio => {
+  };
+
+  const stopSpeaking = () => {
+    if (audio) {
       audio.pause();
       audio.currentTime = 0;
-    });
+    }
+    
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     
     setIsSpeaking(false);
   };
-  
-  const toggleHighContrastMode = () => {
-    setHighContrastMode(prev => !prev);
-  };
-  
+
   return (
     <AccessibilityContext.Provider
       value={{
         textSize,
-        highContrastMode,
-        speakText,
-        isSpeaking,
-        stopSpeaking,
         setTextSize,
-        toggleHighContrastMode,
-        selectedVoice,
-        setSelectedVoice,
         useElevenLabs,
         setUseElevenLabs,
+        selectedVoice,
+        setSelectedVoice,
+        speakText,
+        stopSpeaking,
+        isSpeaking,
+        voiceOptions
       }}
     >
       {children}
