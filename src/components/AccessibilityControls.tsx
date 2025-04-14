@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
-import { Settings, Type, Volume2, VolumeX } from "lucide-react";
+import { Settings, Type } from "lucide-react";
 import { 
   Select,
   SelectContent,
@@ -19,25 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useAccessibility } from "../contexts/AccessibilityContext";
 import { toast } from "sonner";
 
 const AccessibilityControls = () => {
   const { 
     textSize, 
-    setTextSize, 
-    useElevenLabs, 
-    setUseElevenLabs,
-    selectedVoice,
-    setSelectedVoice,
-    voiceOptions
+    setTextSize
   } = useAccessibility();
-
-  const handleVoiceChange = (voiceId: string) => {
-    setSelectedVoice(voiceId as any);
-    toast.success(`Voice changed to ${voiceOptions.find(v => v.id === voiceId)?.name || 'selected voice'}`);
-  };
 
   return (
     <DropdownMenu>
@@ -75,50 +64,6 @@ const AccessibilityControls = () => {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium flex items-center">
-                <Volume2 className="h-4 w-4 mr-2" />
-                Use ElevenLabs Voice
-              </label>
-              <Switch
-                checked={useElevenLabs}
-                onCheckedChange={(checked) => {
-                  setUseElevenLabs(checked);
-                  toast.success(checked 
-                    ? "Using ElevenLabs for better voice quality" 
-                    : "Using browser's built-in speech");
-                }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Toggle to use high-quality ElevenLabs voice
-            </p>
-          </div>
-
-          {useElevenLabs && (
-            <div className="mb-2">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium">Select Voice</label>
-              </div>
-              <Select value={selectedVoice} onValueChange={handleVoiceChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select voice" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Voices</SelectLabel>
-                    {voiceOptions.map((voice) => (
-                      <SelectItem key={voice.id} value={voice.id}>
-                        {voice.name} - {voice.description}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

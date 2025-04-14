@@ -3,7 +3,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Book, Brain, Lightbulb, Volume2, VolumeX } from "lucide-react";
+import { Heart, Book, Brain, Lightbulb } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
@@ -14,19 +14,9 @@ interface StoryDisplayProps {
 }
 
 const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
-  const { speakText, isSpeaking, stopSpeaking, textSize, useElevenLabs, selectedVoice } = useAccessibility();
+  const { textSize } = useAccessibility();
   
   if (!story) return null;
-  
-  const handleReadAloud = () => {
-    if (isSpeaking) {
-      stopSpeaking();
-    } else {
-      // Prepare text for TTS - combine title, content and takeaway
-      const textToRead = `${story.title}. ${story.content} Learning Takeaway: ${story.takeaway}`;
-      speakText(textToRead);
-    }
-  };
   
   const textSizeClasses = {
     small: "text-sm",
@@ -60,20 +50,6 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleReadAloud}
-              className="flex-shrink-0"
-              aria-label={isSpeaking ? "Stop reading" : "Read aloud"}
-            >
-              {isSpeaking ? (
-                <VolumeX className="h-5 w-5 text-primary" />
-              ) : (
-                <Volume2 className="h-5 w-5" />
-              )}
-            </Button>
-            
             {onToggleFavorite && (
               <Button 
                 variant="ghost" 
