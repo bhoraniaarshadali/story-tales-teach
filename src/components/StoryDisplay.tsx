@@ -14,7 +14,7 @@ interface StoryDisplayProps {
 }
 
 const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
-  const { speakText, isSpeaking, stopSpeaking, textSize } = useAccessibility();
+  const { speakText, isSpeaking, stopSpeaking, textSize, useElevenLabs, selectedVoice } = useAccessibility();
   
   if (!story) return null;
   

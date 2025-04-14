@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useAccessibility } from "../contexts/AccessibilityContext";
+import { useAccessibility, VOICE_OPTIONS } from "../contexts/AccessibilityContext";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -11,6 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Type, Contrast, Volume2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue
+} from "@/components/ui/select";
 
 const AccessibilityControls: React.FC = () => {
   const {
@@ -18,7 +25,18 @@ const AccessibilityControls: React.FC = () => {
     highContrastMode,
     setTextSize,
     toggleHighContrastMode,
+    selectedVoice,
+    setSelectedVoice,
+    useElevenLabs,
+    setUseElevenLabs
   } = useAccessibility();
+
+  const handleVoiceChange = (voiceId: string) => {
+    const voice = VOICE_OPTIONS.find(v => v.id === voiceId);
+    if (voice) {
+      setSelectedVoice(voice);
+    }
+  };
 
   return (
     <Popover>
@@ -95,7 +113,42 @@ const AccessibilityControls: React.FC = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="audio" className="pt-4">
+            <TabsContent value="audio" className="space-y-4 pt-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="elevenlabs-tts">Enhanced Text-to-Speech</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Use ElevenLabs for high-quality narration
+                  </p>
+                </div>
+                <Switch
+                  id="elevenlabs-tts"
+                  checked={useElevenLabs}
+                  onCheckedChange={setUseElevenLabs}
+                />
+              </div>
+              
+              {useElevenLabs && (
+                <div className="space-y-2">
+                  <Label htmlFor="voice-select">Select Voice</Label>
+                  <Select 
+                    value={selectedVoice.id} 
+                    onValueChange={handleVoiceChange}
+                  >
+                    <SelectTrigger id="voice-select">
+                      <SelectValue placeholder="Select a voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VOICE_OPTIONS.map((voice) => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          {voice.name} {voice.description && `- ${voice.description}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
               <p className="text-sm text-muted-foreground">
                 Text-to-speech is available for all stories. Click the speaker icon on any story to listen.
               </p>
