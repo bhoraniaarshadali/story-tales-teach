@@ -27,6 +27,8 @@ export async function validateTopic(topic: string) {
             2. Not offensive or harmful
             3. Not complete gibberish
             4. Not purely random characters
+            5. Not too vague or ambiguous
+            6. A topic that can be taught or explained
             
             Output ONLY JSON in this exact format:
             {

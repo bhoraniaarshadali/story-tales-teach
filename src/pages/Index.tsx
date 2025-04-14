@@ -3,15 +3,12 @@ import React, { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
-import StoryHistory from "../components/StoryHistory";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimer from "../components/SessionTimer";
-import AccessibilityControls from "../components/AccessibilityControls";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, History } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowUp } from "lucide-react";
+import SettingsDrawer from "../components/SettingsDrawer";
 
 export interface Story {
   title: string;
@@ -35,7 +32,6 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [prevTopic, setPrevTopic] = useState<string | null>(null);
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
-  const [activeTab, setActiveTab] = useState<string>("current");
 
   useEffect(() => {
     const savedStories = localStorage.getItem("storyHistory");
@@ -67,7 +63,6 @@ const Index = () => {
       console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
       setStory(storyWithMeta);
       setStoryHistory(prev => [storyWithMeta, ...prev]);
-      setActiveTab("current");
       toast.success("Story created successfully!");
     } catch (error) {
       console.error("Error generating story:", error);
@@ -100,7 +95,13 @@ const Index = () => {
     const selectedStory = storyHistory.find(item => item.id === storyId);
     if (selectedStory) {
       setStory(selectedStory);
-      setActiveTab("current");
+    }
+  };
+  
+  const clearHistory = () => {
+    if (confirm("Are you sure you want to clear your story history? This cannot be undone.")) {
+      setStoryHistory([]);
+      toast.success("History cleared successfully");
     }
   };
 
@@ -109,7 +110,12 @@ const Index = () => {
       <div className="container mx-auto px-4">
         <header className="text-center mb-8 relative">
           <div className="absolute right-0 top-0">
-            <AccessibilityControls />
+            <SettingsDrawer 
+              stories={storyHistory} 
+              onViewStory={viewHistoryStory} 
+              onToggleFavorite={toggleFavorite}
+              onClearHistory={clearHistory}
+            />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
             Story Tales Teach
@@ -121,60 +127,40 @@ const Index = () => {
 
         {story && <SessionTimer />}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-4xl mx-auto">
-          <div className="flex justify-center mb-8">
-            <TabsList>
-              <TabsTrigger value="current">Current Story</TabsTrigger>
-              <TabsTrigger value="history">
-                <History className="mr-2 h-4 w-4" />
-                History
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value="current" className="flex flex-col items-center justify-center">
-            <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
+        <div className="flex flex-col items-center justify-center">
+          <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
 
-            {isLoading && (
-              <div className="mt-8">
-                <LoadingSpinner />
-                <p className="mt-2 text-center text-muted-foreground animate-pulse">
-                  Creating your story about {prevTopic}...
-                </p>
-              </div>
-            )}
+          {isLoading && (
+            <div className="mt-8">
+              <LoadingSpinner />
+              <p className="mt-2 text-center text-muted-foreground animate-pulse">
+                Creating your story about {prevTopic}...
+              </p>
+            </div>
+          )}
 
-            <StoryDisplay 
-              story={story} 
-              onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
-            />
+          <StoryDisplay 
+            story={story} 
+            onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
+          />
 
-            {story && (
-              <div className="mt-8 mb-16">
-                <Button
-                  onClick={() =>
-                    window.scrollTo({
-                      top: 0,
-                      behavior: "smooth",
-                    })
-                  }
-                  className="flex items-center"
-                >
-                  <ArrowUp className="mr-2 h-4 w-4" />
-                  Learn Something New
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="history">
-            <StoryHistory 
-              stories={storyHistory} 
-              onViewStory={viewHistoryStory} 
-              onToggleFavorite={toggleFavorite}
-            />
-          </TabsContent>
-        </Tabs>
+          {story && (
+            <div className="mt-8 mb-16">
+              <Button
+                onClick={() =>
+                  window.scrollTo({
+                    top: 0,
+                    behavior: "smooth",
+                  })
+                }
+                className="flex items-center"
+              >
+                <ArrowUp className="mr-2 h-4 w-4" />
+                Learn Something New
+              </Button>
+            </div>
+          )}
+        </div>
 
         <footer className="mt-20 text-center text-muted-foreground">
           <p>

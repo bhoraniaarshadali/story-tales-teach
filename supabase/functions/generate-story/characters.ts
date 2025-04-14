@@ -9,7 +9,12 @@ export function generateCharacter(topic: string, category: string = "general") {
     { name: "Meera", emoji: "👩‍🏫", traits: "patient and articulate" },
     { name: "Ajay", emoji: "👨‍🚀", traits: "adventurous and creative" },
     { name: "Neha", emoji: "👩‍⚕️", traits: "empathetic and precise" },
-    { name: "Raju", emoji: "👨‍🍳", traits: "practical and experimental" }
+    { name: "Raju", emoji: "👨‍🍳", traits: "practical and experimental" },
+    { name: "Anjali", emoji: "👩‍🎨", traits: "creative and perceptive" },
+    { name: "Rajiv", emoji: "👨‍🔧", traits: "hands-on and resourceful" },
+    { name: "Divya", emoji: "👩‍⚖️", traits: "analytical and fair-minded" },
+    { name: "Karan", emoji: "👨‍🌾", traits: "grounded and persistent" },
+    { name: "Shreya", emoji: "👩‍🎓", traits: "inquisitive and thoughtful" }
   ];
   
   // Match character to topic category if possible
@@ -23,10 +28,10 @@ export function generateCharacter(topic: string, category: string = "general") {
       char.traits.includes("methodical") || char.traits.includes("analytical") || char.traits.includes("precise"));
   } else if (category === "arts" || category === "humanities") {
     filteredCharacters = characters.filter(char => 
-      char.traits.includes("creative") || char.traits.includes("articulate"));
+      char.traits.includes("creative") || char.traits.includes("articulate") || char.traits.includes("perceptive"));
   } else if (category === "business" || category === "economics") {
     filteredCharacters = characters.filter(char => 
-      char.traits.includes("practical") || char.traits.includes("methodical"));
+      char.traits.includes("practical") || char.traits.includes("methodical") || char.traits.includes("resourceful"));
   }
   
   // If no matching characters, use all characters

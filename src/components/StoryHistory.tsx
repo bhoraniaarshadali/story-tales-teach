@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Clock, Search, BookOpen, Star, Brain } from "lucide-react";
 import { type Story } from "../pages/Index";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface StoryHistoryProps {
   stories: Story[];
@@ -49,9 +49,9 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
 
   if (stories.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-semibold mb-4">No Stories Yet</h2>
-        <p className="text-muted-foreground">
+      <div className="text-center py-8">
+        <h2 className="text-lg font-medium mb-2">No Stories Yet</h2>
+        <p className="text-muted-foreground text-sm">
           Create your first story to see your history here!
         </p>
       </div>
@@ -59,8 +59,8 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
+    <div className="w-full">
+      <div className="mb-4 flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -73,7 +73,7 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
         <Button 
           variant={filterFavorites ? "default" : "outline"} 
           onClick={() => setFilterFavorites(!filterFavorites)}
-          className="min-w-32"
+          className="md:min-w-32"
         >
           <Heart className={`mr-2 h-4 w-4 ${filterFavorites ? "fill-current" : ""}`} />
           {filterFavorites ? "All Stories" : "Favorites"}
@@ -81,27 +81,27 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
       </div>
 
       {filteredStories.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No matching stories found</p>
+        <div className="text-center py-4">
+          <p className="text-muted-foreground text-sm">No matching stories found</p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredStories.map((story) => (
             <Card key={story.id} className="p-4 hover:shadow-md transition-shadow">
               <div className="flex items-start gap-4">
-                <Avatar className="h-14 w-14 border-2 border-accent flex-shrink-0">
+                <Avatar className="h-12 w-12 border-2 border-accent flex-shrink-0">
                   <AvatarFallback className="text-lg">{story.character?.emoji || "📚"}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-semibold text-lg truncate">{story.title}</h3>
+                    <h3 className="font-semibold text-base truncate">{story.title}</h3>
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className="flex-shrink-0" 
                       onClick={() => onToggleFavorite(story.id as string)}
                     >
-                      <Heart className={`h-5 w-5 ${story.isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}`} />
+                      <Heart className={`h-4 w-4 ${story.isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}`} />
                     </Button>
                   </div>
                   
@@ -119,29 +119,7 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
                     )}
                   </div>
                   
-                  {story.character?.traits && (
-                    <div className="mt-1 text-xs text-muted-foreground flex items-center">
-                      <Brain className="h-3 w-3 mr-1" />
-                      {story.character.name}: {story.character.traits}
-                    </div>
-                  )}
-                  
-                  {story.emotions && story.emotions.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {story.emotions.slice(0, 3).map((emotion, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {emotion}
-                        </Badge>
-                      ))}
-                      {story.emotions.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{story.emotions.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="mt-3">
+                  <div className="mt-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -149,7 +127,7 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
                       onClick={() => onViewStory(story.id as string)}
                     >
                       <BookOpen className="h-3 w-3 mr-1" />
-                      Read Again
+                      View Story
                     </Button>
                   </div>
                 </div>
