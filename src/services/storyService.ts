@@ -12,6 +12,7 @@ interface StoryResponse {
   };
   emotions?: string[];
   keyPoints?: string[];
+  topic?: string; // Make sure topic is included
 }
 
 export const generateStory = async (topic: string): Promise<StoryResponse> => {
@@ -21,9 +22,11 @@ export const generateStory = async (topic: string): Promise<StoryResponse> => {
       return createErrorStory("Please provide a valid topic with at least 2 characters");
     }
     
+    console.log(`Sending topic to generate-story function: "${topic}"`);
+    
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('generate-story', {
-      body: { topic }
+      body: { topic: topic.trim() }
     });
     
     if (error) {
@@ -40,6 +43,11 @@ export const generateStory = async (topic: string): Promise<StoryResponse> => {
     if (!data.title || !data.content || !data.takeaway) {
       console.error('Missing required fields in response:', data);
       throw new Error('Story generation response is missing required fields');
+    }
+    
+    // Ensure the topic is correctly included in the response
+    if (!data.topic) {
+      data.topic = topic;
     }
     
     return data as StoryResponse;
@@ -97,7 +105,8 @@ const generateFallbackStory = (topic: string): StoryResponse => {
     takeaway: `${character.name} ne aaj seekha ki ${topic} ko samajhne ke liye zaruri hai usey real-life examples se connect karna. Complicated cheezein aksar simple analogies se samajh mein aati hain. Aur sabse important baat - learning ka process dheere dheere hota hai, ek dum se nahi. Jaise jaise concepts clear hote jate hain, confidence bhi badhta jata hai. Koi bhi naya concept sikhne ke liye patience aur practice dono zaruri hain.`,
     character: character,
     emotions: emotions,
-    keyPoints: generateKeyPointsForTopic(topic)
+    keyPoints: generateKeyPointsForTopic(topic),
+    topic: topic // Ensure the topic is included
   };
 };
 

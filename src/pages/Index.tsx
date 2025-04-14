@@ -52,16 +52,19 @@ const Index = () => {
     setIsLoading(true);
     setPrevTopic(topic);
     try {
+      console.log(`Generating story for topic: "${topic}"`);
       const generatedStory = await generateStory(topic);
       
+      // Ensure the topic is saved in the story
       const storyWithMeta: Story = {
         ...generatedStory,
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
-        topic,
+        topic: topic, // Make sure we set the topic explicitly here
         isFavorite: false
       };
       
+      console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
       setStory(storyWithMeta);
       setStoryHistory(prev => [storyWithMeta, ...prev]);
       setActiveTab("current");

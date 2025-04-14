@@ -1,3 +1,4 @@
+
 // This is the edge function that generates a story using Gemini API
 
 // Import the necessary packages
@@ -36,6 +37,11 @@ serve(async (req) => {
     // Generate the story using Gemini API
     const story = await generateStoryWithGemini(topic);
     console.log("Generated story with title:", story.title);
+
+    // Ensure the topic is set correctly in the story object
+    if (!story.topic) {
+      story.topic = topic;
+    }
 
     // Return the generated story
     return new Response(JSON.stringify(story), {

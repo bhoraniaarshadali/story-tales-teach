@@ -25,7 +25,7 @@ export async function generateStoryWithGemini(topic: string) {
   
   Character ke emotions mein ye shamil hain: ${topicAnalysis.emotions.join(", ")}
   
-  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin concept clear hona chahiye.
+  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin topic "${topic}" ka concept clear hona chahiye. Yeh topic "${topic}" ke baare mein honi chahiye, kisi aur topic ke baare mein nahi.
   
   Language simple Hindi-English mix (Hinglish) ho, jisme thoda casual touch ho jaise doston ke beech baat hoti hai.
   
