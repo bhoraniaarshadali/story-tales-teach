@@ -32,7 +32,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     return savedMode ? savedMode === "true" : false;
   });
   
-  const [isSpeeching, setIsSpeeching] = useState<boolean>(false);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const speechSynthesis = typeof window !== 'undefined' ? window.speechSynthesis : null;
   
   useEffect(() => {
@@ -64,14 +64,14 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
       speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
-      setIsSpeeching(true);
+      setIsSpeaking(true);
       
       utterance.onend = () => {
-        setIsSpeeching(false);
+        setIsSpeaking(false);
       };
       
       utterance.onerror = () => {
-        setIsSpeeching(false);
+        setIsSpeaking(false);
       };
       
       speechSynthesis.speak(utterance);
@@ -81,7 +81,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
   const stopSpeaking = () => {
     if (speechSynthesis) {
       speechSynthesis.cancel();
-      setIsSpeeching(false);
+      setIsSpeaking(false);
     }
   };
   
@@ -95,7 +95,7 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
         textSize,
         highContrastMode,
         speakText,
-        isSpeeching,
+        isSpeaking,
         stopSpeaking,
         setTextSize,
         toggleHighContrastMode,

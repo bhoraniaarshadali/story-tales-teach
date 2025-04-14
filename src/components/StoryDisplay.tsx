@@ -14,12 +14,12 @@ interface StoryDisplayProps {
 }
 
 const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
-  const { speakText, isSpeeching, stopSpeaking, textSize } = useAccessibility();
+  const { speakText, isSpeaking, stopSpeaking, textSize } = useAccessibility();
   
   if (!story) return null;
   
   const handleReadAloud = () => {
-    if (isSpeeching) {
+    if (isSpeaking) {
       stopSpeaking();
     } else {
       // Prepare text for TTS - combine title, content and takeaway
@@ -65,9 +65,9 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
               size="icon"
               onClick={handleReadAloud}
               className="flex-shrink-0"
-              aria-label={isSpeeching ? "Stop reading" : "Read aloud"}
+              aria-label={isSpeaking ? "Stop reading" : "Read aloud"}
             >
-              {isSpeeching ? (
+              {isSpeaking ? (
                 <VolumeX className="h-5 w-5 text-primary" />
               ) : (
                 <Volume2 className="h-5 w-5" />
