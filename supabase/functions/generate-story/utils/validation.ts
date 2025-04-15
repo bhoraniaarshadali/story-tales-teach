@@ -9,7 +9,25 @@ export async function validateTopic(topic: string) {
     return { isValid: true, reason: "Skipping validation, API key not found" }; // Default to valid if API key is missing
   }
 
+  // Basic validation first
+  if (!topic || topic.trim().length < 2) {
+    return { isValid: false, reason: "Topic is too short" };
+  }
+
+  const sanitizedTopic = topic.trim().toLowerCase();
+  // Check for common invalid inputs
+  if (
+    sanitizedTopic === "a" || 
+    sanitizedTopic === "test" || 
+    sanitizedTopic === "hi" ||
+    sanitizedTopic === "hello"
+  ) {
+    return { isValid: false, reason: "Please provide a real topic, not just a test word" };
+  }
+
   try {
+    console.log(`Validating topic: "${topic}"`);
+    
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + geminiApiKey, {
       method: "POST",
       headers: {
@@ -52,6 +70,7 @@ export async function validateTopic(topic: string) {
     }
     
     const text = data.candidates[0].content.parts[0].text;
+    console.log(`Validation response: ${text}`);
     
     try {
       // Extract JSON from response (handling cases where there might be markdown formatting)
@@ -76,7 +95,7 @@ export function createInvalidTopicResponse(topic: string, reason: string) {
   return new Response(
     JSON.stringify({
       title: "Thoda Confusion Hai",
-      content: `Yeh topic thoda ajeeb lag raha hai: ${reason}\n\nKya aap koi aur topic try karna chahenge? Ya ise thoda aur clearly explain kar sakte hain?`,
+      content: `Yeh topic "${topic}" thoda ajeeb lag raha hai: ${reason}\n\nKya aap koi aur topic try karna chahenge? Ya ise thoda aur clearly explain kar sakte hain?`,
       takeaway: "Kripya ek specific aur clear topic dein jiske baare mein aap jaanna chahte hain.",
       emotions: ["confused", "curious"],
       topic: topic

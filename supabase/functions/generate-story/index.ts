@@ -31,12 +31,26 @@ serve(async (req) => {
     console.log("Topic validation result:", JSON.stringify(validationResult));
     
     if (!validationResult.isValid) {
+      console.log(`Topic "${topic}" was rejected: ${validationResult.reason}`);
       return createInvalidTopicResponse(topic, validationResult.reason);
     }
 
     // Generate the story using Gemini API
+    console.log(`Validated topic "${topic}", generating story...`);
     const story = await generateStoryWithGemini(topic);
-    console.log("Generated story with title:", story.title);
+    console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
+
+    // Additional validation to ensure topic is present in the story
+    if (!story.content.toLowerCase().includes(topic.toLowerCase())) {
+      console.error("Generated story doesn't contain the topic in content");
+      // Use fallback story instead
+      const fallbackStory = generateFallbackStory(topic);
+      console.log("Using fallback story due to topic mismatch");
+      return new Response(JSON.stringify(fallbackStory), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Ensure the topic is set correctly in the story object
     if (!story.topic) {
@@ -67,6 +81,7 @@ serve(async (req) => {
     
     // Generate a fallback story with the original topic if possible
     const fallbackStory = generateFallbackStory(fallbackTopic);
+    console.log(`Returning fallback story for topic "${fallbackTopic}"`);
     
     return new Response(JSON.stringify(fallbackStory), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

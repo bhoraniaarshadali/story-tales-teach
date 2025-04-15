@@ -7,6 +7,7 @@ import { Heart, Book, Brain, Lightbulb } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
+import AudioNarration from "./AudioNarration";
 
 interface StoryDisplayProps {
   story: Story | null;
@@ -76,6 +77,13 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             </div>
           </div>
         )}
+        
+        <div className="mb-4">
+          <AudioNarration 
+            text={story.content}
+            characterName={story.character?.name}
+          />
+        </div>
         
         <div className={`prose prose-purple max-w-none ${textSizeClasses[textSize]}`}>
           {story.content.split("\n\n").map((paragraph, i) => (

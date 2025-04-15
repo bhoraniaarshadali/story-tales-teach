@@ -17,9 +17,10 @@ export async function generateStoryWithGemini(topic: string) {
   // Generate a character that fits the topic
   const character = generateCharacter(topic, topicAnalysis.category);
 
-  // Create a conversational, engaging prompt for Gemini
+  // Create a more strict and focused prompt for Gemini
   const prompt = `
-  Generate a story about SPECIFICALLY the topic "${topic}". DO NOT create a story about "learning" or any other topic - it MUST be about "${topic}".
+  IMPORTANT REQUIREMENT: You MUST create a story SPECIFICALLY about the topic "${topic}". 
+  The entire story MUST be explaining the concept of "${topic}" and NOT about anything else.
   
   Kisi ek character ke through ek interesting aur relatable kahani banao jisme wo "${topic}" ko samajhne ki koshish kar raha ho.
   
@@ -27,22 +28,26 @@ export async function generateStoryWithGemini(topic: string) {
   
   Character ke emotions mein ye shamil hain: ${topicAnalysis.emotions.join(", ")}
   
-  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin topic "${topic}" ka concept clear hona chahiye. 
+  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. 
+  Kahani engaging ho, funny ho sakti hai, lekin topic "${topic}" ka concept clear hona chahiye.
   
-  IMPORTANT: Story MUST be about the topic "${topic}" ONLY. Do NOT create a generic story about "learning" - it must specifically explain "${topic}".
+  CRITICAL INSTRUCTION: The story MUST be ONLY about "${topic}". DO NOT create a story about "learning" or any generic topic.
+  The title, content, takeaway, and keyPoints MUST all be specifically about "${topic}".
   
   Language simple Hindi-English mix (Hinglish) ho, jisme thoda casual touch ho jaise doston ke beech baat hoti hai.
   
   JSON format me output do:
   {
     "title": "Catchy title in Hinglish related to the story and topic '${topic}'",
-    "content": "The full story with proper paragraph breaks (use \\n\\n for paragraphs)",
+    "content": "The full story with proper paragraph breaks (use \\n\\n for paragraphs) - This MUST be about ${topic} only",
     "takeaway": "A summary of what was learned about ${topic} in 3-4 lines",
     "emotions": ${JSON.stringify(topicAnalysis.emotions)},
     "keyPoints": ["key learning point 1 about ${topic}", "key learning point 2 about ${topic}", "key learning point 3 about ${topic}"]
   }`;
 
   try {
+    console.log(`Sending prompt to Gemini for topic: ${topic}`);
+    
     // Call the Gemini API to generate content
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + geminiApiKey, {
       method: "POST",
@@ -64,16 +69,27 @@ export async function generateStoryWithGemini(topic: string) {
     const data = await response.json();
     
     if (!data.candidates || data.candidates.length === 0) {
+      console.error("No response from Gemini API");
       throw new Error("No response from Gemini API");
     }
 
     const text = data.candidates[0].content.parts[0].text;
+    console.log("Received response from Gemini, extracting JSON");
     
     try {
       // Extract JSON from the response (handle cases with markdown formatting)
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const story = JSON.parse(jsonMatch[0]);
+        const storyJson = jsonMatch[0];
+        // Validate the story to make sure it's about the requested topic
+        const story = JSON.parse(storyJson);
+        
+        // Basic validation to catch mismatched stories
+        if (!storyContainsTopic(story, topic)) {
+          console.error("Generated story doesn't match the requested topic");
+          throw new Error(`Generated story isn't about ${topic}`);
+        }
+        
         return {
           ...story,
           character: {
@@ -84,6 +100,7 @@ export async function generateStoryWithGemini(topic: string) {
           topic: topic // Explicitly include the topic in the response
         };
       } else {
+        console.error("Could not extract JSON from Gemini response");
         throw new Error("Could not extract JSON from Gemini response");
       }
     } catch (jsonError) {
@@ -94,6 +111,20 @@ export async function generateStoryWithGemini(topic: string) {
     console.error("Error generating story with Gemini:", error);
     throw error;
   }
+}
+
+// Validate that the story actually contains the requested topic
+function storyContainsTopic(story: any, topic: string): boolean {
+  const topicLowerCase = topic.toLowerCase();
+  const checks = [
+    story.title?.toLowerCase().includes(topicLowerCase),
+    story.content?.toLowerCase().includes(topicLowerCase),
+    story.takeaway?.toLowerCase().includes(topicLowerCase),
+    story.keyPoints?.some((point: string) => point.toLowerCase().includes(topicLowerCase))
+  ];
+  
+  // The story should mention the topic in at least 3 of the 4 elements
+  return checks.filter(Boolean).length >= 3;
 }
 
 // Generate a fallback story if the API fails

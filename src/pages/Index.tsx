@@ -52,6 +52,14 @@ const Index = () => {
       console.log(`Generating story for topic: "${topic}"`);
       const generatedStory = await generateStory(topic);
       
+      // Verify that the story is actually about the requested topic
+      if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase())) {
+        console.error(`Generated story doesn't contain topic "${topic}"`);
+        toast.error(`Story generation failed for topic "${topic}". Please try again.`);
+        setIsLoading(false);
+        return;
+      }
+      
       // Ensure the topic is saved in the story
       const storyWithMeta: Story = {
         ...generatedStory,
