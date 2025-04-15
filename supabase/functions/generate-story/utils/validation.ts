@@ -51,7 +51,8 @@ export async function validateTopic(topic: string) {
             Output ONLY JSON in this exact format:
             {
               "isValid": boolean,
-              "reason": "short explanation if invalid or 'valid topic' if valid"
+              "reason": "short explanation if invalid or 'valid topic' if valid",
+              "suggestedTopic": "if the topic is not valid but is close to something valid, suggest a similar valid topic otherwise null"
             }`
           }]
         }],
@@ -91,11 +92,15 @@ export async function validateTopic(topic: string) {
 }
 
 // Create invalid topic response
-export function createInvalidTopicResponse(topic: string, reason: string) {
+export function createInvalidTopicResponse(topic: string, reason: string, suggestedTopic?: string) {
+  const suggestionText = suggestedTopic 
+    ? `\n\nKya aap "${suggestedTopic}" ke bare mein jaanna chahenge? Yeh ek behtar topic ho sakta hai.` 
+    : '';
+    
   return new Response(
     JSON.stringify({
       title: "Thoda Confusion Hai",
-      content: `Yeh topic "${topic}" thoda ajeeb lag raha hai: ${reason}\n\nKya aap koi aur topic try karna chahenge? Ya ise thoda aur clearly explain kar sakte hain?`,
+      content: `Yeh topic "${topic}" thoda ajeeb lag raha hai: ${reason}\n\nKya aap koi aur topic try karna chahenge? Ya ise thoda aur clearly explain kar sakte hain?${suggestionText}`,
       takeaway: "Kripya ek specific aur clear topic dein jiske baare mein aap jaanna chahte hain.",
       emotions: ["confused", "curious"],
       topic: topic
@@ -106,3 +111,4 @@ export function createInvalidTopicResponse(topic: string, reason: string) {
     }
   );
 }
+

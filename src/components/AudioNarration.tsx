@@ -40,10 +40,22 @@ const AudioNarration: React.FC<AudioNarrationProps> = ({ text, characterName }) 
     setIsLoading(true);
     
     try {
-      // Use Hindi voice for Hinglish narration
-      const voiceId = characterName && characterName.match(/[a-zA-Z]+/)[0].toLowerCase().includes('priya') 
-        ? '21m00Tcm4TlvDq8ikWAM' // Female voice
-        : 'pNInz6obpgDQGcFmaJgB'; // Male voice
+      // Select voice based on character name
+      // Let's make this more robust with additional voices
+      let voiceId = 'pNInz6obpgDQGcFmaJgB'; // Default male voice
+      
+      if (characterName) {
+        const nameLower = characterName.toLowerCase();
+        
+        // Female character voices
+        if (nameLower.includes('priya') || 
+            nameLower.includes('meera') || 
+            nameLower.includes('neha') || 
+            nameLower.includes('divya') || 
+            nameLower.includes('pooja')) {
+          voiceId = '21m00Tcm4TlvDq8ikWAM'; // Female voice
+        }
+      }
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
@@ -63,9 +75,20 @@ const AudioNarration: React.FC<AudioNarrationProps> = ({ text, characterName }) 
       newAudio.addEventListener('ended', () => {
         setIsPlaying(false);
       });
+
+      newAudio.addEventListener('error', (e) => {
+        console.error('Audio playback error:', e);
+        toast.error('There was a problem playing the audio. Please try again.');
+        setIsPlaying(false);
+      });
       
       setAudio(newAudio);
-      newAudio.play();
+      newAudio.play().catch(err => {
+        console.error('Audio play error:', err);
+        toast.error('Could not play audio. Please try again or check your device settings.');
+        setIsPlaying(false);
+      });
+      
       setIsPlaying(true);
       
     } catch (error) {

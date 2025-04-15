@@ -32,7 +32,11 @@ serve(async (req) => {
     
     if (!validationResult.isValid) {
       console.log(`Topic "${topic}" was rejected: ${validationResult.reason}`);
-      return createInvalidTopicResponse(topic, validationResult.reason);
+      return createInvalidTopicResponse(
+        topic, 
+        validationResult.reason, 
+        validationResult.suggestedTopic
+      );
     }
 
     // Generate the story using Gemini API
@@ -40,12 +44,25 @@ serve(async (req) => {
     const story = await generateStoryWithGemini(topic);
     console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
 
-    // Additional validation to ensure topic is present in the story
+    // Additional validation to ensure topic is properly explained in the story
     if (!story.content.toLowerCase().includes(topic.toLowerCase())) {
       console.error("Generated story doesn't contain the topic in content");
       // Use fallback story instead
       const fallbackStory = generateFallbackStory(topic);
       console.log("Using fallback story due to topic mismatch");
+      return new Response(JSON.stringify(fallbackStory), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Count how many times the topic is mentioned in the content
+    const topicMentions = (story.content.toLowerCase().match(new RegExp(topic.toLowerCase(), 'g')) || []).length;
+    
+    // If the topic is only mentioned 1-2 times, it's likely not properly explained
+    if (topicMentions < 3) {
+      console.error(`Generated story only mentions "${topic}" ${topicMentions} times, using fallback`);
+      const fallbackStory = generateFallbackStory(topic);
       return new Response(JSON.stringify(fallbackStory), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
