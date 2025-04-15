@@ -19,13 +19,17 @@ export async function generateStoryWithGemini(topic: string) {
 
   // Create a conversational, engaging prompt for Gemini
   const prompt = `
+  Generate a story about SPECIFICALLY the topic "${topic}". DO NOT create a story about "learning" or any other topic - it MUST be about "${topic}".
+  
   Kisi ek character ke through ek interesting aur relatable kahani banao jisme wo "${topic}" ko samajhne ki koshish kar raha ho.
   
   Character ka naam "${character.name}" hai, aur woh ${character.traits} hai.
   
   Character ke emotions mein ye shamil hain: ${topicAnalysis.emotions.join(", ")}
   
-  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin topic "${topic}" ka concept clear hona chahiye. Yeh topic "${topic}" ke baare mein honi chahiye, kisi aur topic ke baare mein nahi.
+  Topic "${topic}" ke bare mein step-by-step explain karo real-life examples, analogies aur daily life situations ke through. Kahani engaging ho, funny ho sakti hai, lekin topic "${topic}" ka concept clear hona chahiye. 
+  
+  IMPORTANT: Story MUST be about the topic "${topic}" ONLY. Do NOT create a generic story about "learning" - it must specifically explain "${topic}".
   
   Language simple Hindi-English mix (Hinglish) ho, jisme thoda casual touch ho jaise doston ke beech baat hoti hai.
   

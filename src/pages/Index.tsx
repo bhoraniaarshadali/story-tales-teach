@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ArrowUp } from "lucide-react";
 import SettingsDrawer from "../components/SettingsDrawer";
+import ThemeToggle from "../components/ThemeToggle";
 
 export interface Story {
   title: string;
@@ -109,7 +110,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
       <div className="container mx-auto px-4">
         <header className="text-center mb-8 relative">
-          <div className="absolute right-0 top-0">
+          <div className="absolute right-0 top-0 flex gap-2 items-center">
+            <ThemeToggle />
             <SettingsDrawer 
               stories={storyHistory} 
               onViewStory={viewHistoryStory} 
@@ -167,7 +169,7 @@ const Index = () => {
             © 2025 Story Tales Teach - Making learning memorable through Hinglish stories
           </p>
           <p className="mt-2">
-            This platform was created by <strong>Arshad ali Bhorania</strong>, who combined education and storytelling in a creative and magical way.
+            This platform was created by <a href="https://www.linkedin.com/in/arshad-ali-bhorania/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary"><strong>Arshad Ali Bhorania</strong></a>, who combined education and storytelling in a creative and magical way.
           </p>
         </footer>
       </div>
