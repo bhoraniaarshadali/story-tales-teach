@@ -5,7 +5,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
-import { generateStoryWithGemini, generateFallbackStory } from "./generator.ts";
+import { generateStoryWithGemini } from "./generator.ts";
 
 // Main handler function for the edge function
 serve(async (req) => {
@@ -47,12 +47,11 @@ serve(async (req) => {
     // Additional validation to ensure topic is properly explained in the story
     if (!story.content.toLowerCase().includes(topic.toLowerCase())) {
       console.error("Generated story doesn't contain the topic in content");
-      // Use fallback story instead
-      const fallbackStory = generateFallbackStory(topic);
-      console.log("Using fallback story due to topic mismatch");
-      return new Response(JSON.stringify(fallbackStory), {
+      return new Response(JSON.stringify({ 
+        error: "Generated story doesn't properly explain the topic. Please try again." 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+        status: 400,
       });
     }
 
@@ -61,11 +60,12 @@ serve(async (req) => {
     
     // If the topic is only mentioned 1-2 times, it's likely not properly explained
     if (topicMentions < 3) {
-      console.error(`Generated story only mentions "${topic}" ${topicMentions} times, using fallback`);
-      const fallbackStory = generateFallbackStory(topic);
-      return new Response(JSON.stringify(fallbackStory), {
+      console.error(`Generated story only mentions "${topic}" ${topicMentions} times`);
+      return new Response(JSON.stringify({ 
+        error: "Generated story doesn't properly explain the topic. Please try again." 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+        status: 400,
       });
     }
 
@@ -82,27 +82,11 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generate-story function:", error);
     
-    let fallbackTopic = "learning";
-    
-    try {
-      // Try to get the original topic from the request even if we're in an error state
-      const requestData = await req.clone().json();
-      if (requestData && requestData.topic && typeof requestData.topic === "string") {
-        fallbackTopic = requestData.topic;
-        console.log(`Using fallback with original topic: "${fallbackTopic}"`);
-      }
-    } catch (parseError) {
-      console.error("Could not parse request JSON in error handler:", parseError);
-      // Keep the default fallback topic
-    }
-    
-    // Generate a fallback story with the original topic if possible
-    const fallbackStory = generateFallbackStory(fallbackTopic);
-    console.log(`Returning fallback story for topic "${fallbackTopic}"`);
-    
-    return new Response(JSON.stringify(fallbackStory), {
+    return new Response(JSON.stringify({ 
+      error: "Failed to generate story. Please try again with a different topic."
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+      status: 500,
     });
   }
 });

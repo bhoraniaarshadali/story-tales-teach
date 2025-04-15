@@ -7,7 +7,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import SessionTimer from "../components/SessionTimer";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, AlertTriangle } from "lucide-react";
 import SettingsDrawer from "../components/SettingsDrawer";
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -33,6 +33,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [prevTopic, setPrevTopic] = useState<string | null>(null);
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const savedStories = localStorage.getItem("storyHistory");
@@ -48,6 +49,8 @@ const Index = () => {
   const handleSubmitTopic = async (topic: string) => {
     setIsLoading(true);
     setPrevTopic(topic);
+    setError(null); // Clear previous errors
+    
     try {
       console.log(`Generating story for topic: "${topic}"`);
       const generatedStory = await generateStory(topic);
@@ -56,6 +59,7 @@ const Index = () => {
       if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase())) {
         console.error(`Generated story doesn't contain topic "${topic}"`);
         toast.error(`Story generation failed for topic "${topic}". Please try again.`);
+        setError(`We couldn't create a story about "${topic}". Please try again or try a different topic.`);
         setIsLoading(false);
         return;
       }
@@ -76,6 +80,7 @@ const Index = () => {
     } catch (error) {
       console.error("Error generating story:", error);
       toast.error("Failed to create story. Please try again.");
+      setError(`We couldn't create a story about "${topic}". Please try again or try a different topic.`);
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +109,7 @@ const Index = () => {
     const selectedStory = storyHistory.find(item => item.id === storyId);
     if (selectedStory) {
       setStory(selectedStory);
+      setError(null); // Clear any errors when viewing history
     }
   };
   
@@ -111,6 +117,12 @@ const Index = () => {
     if (confirm("Are you sure you want to clear your story history? This cannot be undone.")) {
       setStoryHistory([]);
       toast.success("History cleared successfully");
+    }
+  };
+
+  const handleTryAgain = () => {
+    if (prevTopic) {
+      handleSubmitTopic(prevTopic);
     }
   };
 
@@ -149,12 +161,26 @@ const Index = () => {
             </div>
           )}
 
-          <StoryDisplay 
+          {error && !isLoading && (
+            <div className="mt-8 text-center p-6 bg-muted rounded-lg border border-border max-w-md">
+              <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Story Generation Failed</h3>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <div className="flex gap-4 justify-center">
+                <Button onClick={handleTryAgain}>Try Again</Button>
+                <Button variant="outline" onClick={() => setError(null)}>
+                  Try Another Topic
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!error && <StoryDisplay 
             story={story} 
             onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
-          />
+          />}
 
-          {story && (
+          {story && !error && (
             <div className="mt-8 mb-16">
               <Button
                 onClick={() =>
