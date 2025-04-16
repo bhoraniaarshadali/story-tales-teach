@@ -1,3 +1,4 @@
+
 import { analyzeTopicEmotions } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
 import { corsHeaders } from "./utils/cors.ts";
@@ -32,7 +33,7 @@ export async function generateStoryWithGemini(topic: string) {
     - Uses real-life examples
     - Is engaging and educational
     
-    Output MUST be in JSON format with:
+    Output MUST be a valid JSON with:
     - title (in Hinglish)
     - content (story explaining the topic)
     - takeaway (key learnings)
@@ -66,24 +67,33 @@ export async function generateStoryWithGemini(topic: string) {
     const text = data.candidates[0].content.parts[0].text;
     console.log("📝 Received response from Gemini");
     
-    // JSON extraction with more robust parsing
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("❌ Could not extract JSON from response");
-      throw new Error("Invalid response format from Gemini");
-    }
-
-    const storyJson = JSON.parse(jsonMatch[0]);
+    // More robust JSON extraction
+    const jsonMatches = text.match(/```json\n([\s\S]*?)\n```/);
+    const rawJson = jsonMatches ? jsonMatches[1] : text;
     
-    return {
-      ...storyJson,
-      character: {
-        name: character.name,
-        emoji: character.emoji,
-        traits: character.traits
-      },
-      topic: topic
-    };
+    try {
+      const storyJson = JSON.parse(rawJson);
+      
+      // Validate story contains the topic
+      if (!storyContainsTopic(storyJson, topic)) {
+        console.error(`❌ Generated story does not explain "${topic}" sufficiently`);
+        throw new Error(`Story does not adequately explain the topic: ${topic}`);
+      }
+      
+      return {
+        ...storyJson,
+        character: {
+          name: character.name,
+          emoji: character.emoji,
+          traits: character.traits
+        },
+        topic: topic
+      };
+    } catch (parseError) {
+      console.error("❌ JSON Parsing Error:", parseError);
+      console.error("Raw Text:", text);
+      throw new Error("Could not parse story JSON");
+    }
   } catch (error) {
     console.error("🔥 Story Generation Error:", error);
     throw error;
