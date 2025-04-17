@@ -24,7 +24,7 @@ export interface Story {
     emoji: string;
     traits?: string;
   };
-  emotions?: string[];
+  emotions?: string[] | string; // Updated to accept both string array and string
   keyPoints?: string[];
 }
 

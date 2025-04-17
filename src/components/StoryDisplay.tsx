@@ -25,10 +25,10 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
     large: "text-lg"
   };
   
-  // Handle emotions whether it's a string or an array
+  // Handle emotions whether it's a string, array, or undefined
   const emotionsArray = Array.isArray(story.emotions) 
     ? story.emotions 
-    : typeof story.emotions === 'string' 
+    : typeof story.emotions === 'string' && story.emotions
       ? story.emotions.split(',').map(e => e.trim()) 
       : [];
 
