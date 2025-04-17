@@ -5,10 +5,10 @@ import { corsHeaders } from "./utils/cors.ts";
 
 export async function generateStoryWithGemini(topic: string) {
   // Enhanced API key validation
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!geminiApiKey) {
-    console.error("❌ CRITICAL: Gemini API key is missing!");
-    throw new Error("Gemini API key is not configured. Please add the key in Supabase secrets.");
+  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!openRouterApiKey) {
+    console.error("❌ CRITICAL: OpenRouter API key is missing!");
+    throw new Error("OpenRouter API key is not configured. Please add the key in Supabase secrets.");
   }
   
   try {
@@ -19,7 +19,7 @@ export async function generateStoryWithGemini(topic: string) {
     // Generate a character that fits the topic
     const character = generateCharacter(topic, topicAnalysis.category);
 
-    // Create a more focused and specific prompt for Gemini that forces explaining the actual topic
+    // Create a more focused and specific prompt for Mixtral
     const prompt = `
     CRITICAL INSTRUCTION: You MUST create an educational story SPECIFICALLY about "${topic}". 
     The entire story MUST explain the ACTUAL CONCEPT of "${topic}" in detail.
@@ -41,38 +41,40 @@ export async function generateStoryWithGemini(topic: string) {
     - keyPoints (technical/core points)
     `;
 
-    console.log("🚀 Sending prompt to Gemini API for topic:", topic);
+    console.log("🚀 Sending prompt to OpenRouter API for topic:", topic);
     
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + geminiApiKey, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${openRouterApiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://storytalesteach.lovable.app", // Optional: helps track usage
+        "X-Title": "Story Tales Teach"
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        }
+        model: "mistralai/mixtral-8x7b-instruct",
+        messages: [
+          { role: "system", content: "You are an educational storyteller creating Hinglish stories that explain complex topics." },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 2048
       })
     });
 
     const data = await response.json();
     
-    if (!data.candidates || data.candidates.length === 0) {
-      console.error("❌ No response from Gemini API");
-      throw new Error("No valid response from Gemini API");
+    if (!data.choices || data.choices.length === 0) {
+      console.error("❌ No response from OpenRouter API");
+      throw new Error("No valid response from OpenRouter API");
     }
 
-    const text = data.candidates[0].content.parts[0].text;
-    console.log("📝 Received response from Gemini");
-    
-    // More robust JSON extraction
-    const jsonMatches = text.match(/```json\n([\s\S]*?)\n```/);
-    const rawJson = jsonMatches ? jsonMatches[1] : text;
+    const text = data.choices[0].message.content;
+    console.log("📝 Received response from Mixtral");
     
     try {
-      const storyJson = JSON.parse(rawJson);
+      const storyJson = JSON.parse(text);
       
       // Validate story contains the topic
       if (!storyContainsTopic(storyJson, topic)) {
@@ -113,3 +115,4 @@ function storyContainsTopic(story: any, topic: string): boolean {
   
   return sectionsWithTopic >= 3 && story.content.length >= 200;
 }
+
