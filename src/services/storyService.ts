@@ -10,7 +10,7 @@ interface StoryResponse {
     emoji: string;
     traits?: string;
   };
-  emotions?: string[];
+  emotions?: string[] | string; // Updated to handle both string and array
   keyPoints?: string[];
   topic?: string;
   error?: string; // Add error field to handle graceful error responses
@@ -50,6 +50,11 @@ export const generateStory = async (topic: string): Promise<StoryResponse> => {
     if (!data.title || !data.content || !data.takeaway) {
       console.error('Missing required fields in response:', data);
       throw new Error('Story generation response is missing required fields');
+    }
+    
+    // Normalize emotions to ensure it's an array
+    if (data.emotions && typeof data.emotions === 'string') {
+      data.emotions = data.emotions.split(',').map(emotion => emotion.trim());
     }
     
     // Enhanced validation - check if the content actually explains the topic

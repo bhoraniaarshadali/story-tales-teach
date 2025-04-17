@@ -37,8 +37,8 @@ export async function generateStoryWithMixtral(topic: string) {
     - title (in Hinglish)
     - content (story explaining the topic)
     - takeaway (key learnings)
-    - emotions
-    - keyPoints (technical/core points)
+    - emotions (array of strings)
+    - keyPoints (array of technical/core points)
     `;
 
     console.log("🚀 Sending prompt to OpenRouter API for topic:", topic);
@@ -80,7 +80,14 @@ export async function generateStoryWithMixtral(topic: string) {
     console.log("📝 Received response from Mixtral");
     
     try {
-      const storyJson = JSON.parse(text);
+      let storyJson = JSON.parse(text);
+      
+      // Ensure emotions is an array
+      if (storyJson.emotions && typeof storyJson.emotions === 'string') {
+        storyJson.emotions = storyJson.emotions.split(',').map((e: string) => e.trim());
+      } else if (!storyJson.emotions) {
+        storyJson.emotions = ["educational", "informative"];
+      }
       
       // Validate story contains the topic
       if (!storyContainsTopic(storyJson, topic)) {

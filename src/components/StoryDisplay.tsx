@@ -24,6 +24,13 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
     medium: "text-base",
     large: "text-lg"
   };
+  
+  // Handle emotions whether it's a string or an array
+  const emotionsArray = Array.isArray(story.emotions) 
+    ? story.emotions 
+    : typeof story.emotions === 'string' 
+      ? story.emotions.split(',').map(e => e.trim()) 
+      : [];
 
   return (
     <div className="w-full max-w-3xl mx-auto mt-8">
@@ -65,11 +72,11 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
           </div>
         </div>
         
-        {story.emotions && story.emotions.length > 0 && (
+        {emotionsArray.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Story emotions:</h3>
             <div className="flex flex-wrap gap-2">
-              {story.emotions.map((emotion, index) => (
+              {emotionsArray.map((emotion, index) => (
                 <Badge key={index} variant="outline" className="text-xs">
                   {emotion}
                 </Badge>
