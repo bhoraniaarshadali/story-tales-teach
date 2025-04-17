@@ -1,11 +1,11 @@
 
-// This is the edge function that generates a story using Gemini API
+// This is the edge function that generates a story using Mixtral API via OpenRouter
 
 // Import the necessary packages
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
-import { generateStoryWithGemini } from "./generator.ts";
+import { generateStoryWithMixtral } from "./generator.ts";
 
 // Main handler function for the edge function
 serve(async (req) => {
@@ -39,9 +39,9 @@ serve(async (req) => {
       );
     }
 
-    // Generate the story using Gemini API
+    // Generate the story using Mixtral API via OpenRouter
     console.log(`Validated topic "${topic}", generating story...`);
-    const story = await generateStoryWithGemini(topic);
+    const story = await generateStoryWithMixtral(topic);
     console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
 
     // Additional validation to ensure topic is properly explained in the story

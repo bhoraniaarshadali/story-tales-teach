@@ -3,7 +3,7 @@ import { analyzeTopicEmotions } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
 import { corsHeaders } from "./utils/cors.ts";
 
-export async function generateStoryWithGemini(topic: string) {
+export async function generateStoryWithMixtral(topic: string) {
   // Enhanced API key validation
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterApiKey) {
@@ -115,4 +115,3 @@ function storyContainsTopic(story: any, topic: string): boolean {
   
   return sectionsWithTopic >= 3 && story.content.length >= 200;
 }
-
