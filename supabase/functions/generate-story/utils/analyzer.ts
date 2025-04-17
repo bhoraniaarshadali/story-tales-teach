@@ -3,8 +3,12 @@
 export async function analyzeTopicEmotions(topic: string) {
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
   if (!geminiApiKey) {
-    console.error("GEMINI_API_KEY not found for emotion analysis");
-    return { emotions: ["curious", "interested"], category: "general" };
+    console.log("Note: GEMINI_API_KEY not found, using default emotions");
+    return { 
+      emotions: ["curious", "interested"], 
+      category: "general",
+      characteristics: ["informative", "educational", "engaging"] 
+    };
   }
   
   try {
@@ -38,9 +42,13 @@ export async function analyzeTopicEmotions(topic: string) {
     
     const data = await response.json();
     
+    // Instead of showing error messages, we'll use default values when the API doesn't return what we expect
     if (!data.candidates || data.candidates.length === 0) {
-      console.error("No candidates in topic analysis response");
-      return { emotions: ["curious", "interested"], category: "general" };
+      return { 
+        emotions: ["curious", "interested"], 
+        category: "general",
+        characteristics: ["informative", "educational", "engaging"] 
+      };
     }
     
     const text = data.candidates[0].content.parts[0].text;
@@ -50,14 +58,26 @@ export async function analyzeTopicEmotions(topic: string) {
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       } else {
-        return { emotions: ["curious", "interested"], category: "general" };
+        return { 
+          emotions: ["curious", "interested"], 
+          category: "general",
+          characteristics: ["informative", "educational", "engaging"] 
+        };
       }
     } catch (e) {
-      console.error("Error parsing emotion analysis JSON", e);
-      return { emotions: ["curious", "interested"], category: "general" };
+      console.log("Using default emotions as parsing failed");
+      return { 
+        emotions: ["curious", "interested"], 
+        category: "general",
+        characteristics: ["informative", "educational", "engaging"] 
+      };
     }
   } catch (error) {
-    console.error("Error analyzing topic emotions:", error);
-    return { emotions: ["curious", "interested"], category: "general" };
+    console.log("Using default emotions as API call failed");
+    return { 
+      emotions: ["curious", "interested"], 
+      category: "general",
+      characteristics: ["informative", "educational", "engaging"] 
+    };
   }
 }
