@@ -63,6 +63,12 @@ export async function generateStoryWithMixtral(topic: string) {
       })
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ OpenRouter API error:", response.status, errorText);
+      throw new Error(`OpenRouter API error: ${response.status} - ${errorText.substring(0, 200)}`);
+    }
+
     const data = await response.json();
     
     if (!data.choices || data.choices.length === 0) {
@@ -106,10 +112,15 @@ export async function generateStoryWithMixtral(topic: string) {
 function storyContainsTopic(story: any, topic: string): boolean {
   const topicLowerCase = topic.toLowerCase();
   
+  // Simple content check first - if no content, it doesn't explain the topic
+  if (!story.content || typeof story.content !== 'string') {
+    return false;
+  }
+  
   const sectionsWithTopic = [
-    story.title?.toLowerCase().includes(topicLowerCase),
-    story.content?.toLowerCase().includes(topicLowerCase),
-    story.takeaway?.toLowerCase().includes(topicLowerCase),
+    story.title?.toLowerCase()?.includes(topicLowerCase),
+    story.content?.toLowerCase()?.includes(topicLowerCase),
+    story.takeaway?.toLowerCase()?.includes(topicLowerCase),
     story.keyPoints?.some((point: string) => point.toLowerCase().includes(topicLowerCase))
   ].filter(Boolean).length;
   
