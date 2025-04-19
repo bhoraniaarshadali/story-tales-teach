@@ -1,89 +1,75 @@
-
 import { corsHeaders } from "./cors.ts";
 
-// Helper for validating topics with Gemini
+// Helper for validating topics with OpenRouter using Mixtral model
 export async function validateTopic(topic: string) {
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!geminiApiKey) {
-    console.log("GEMINI_API_KEY not found, skipping validation");
-    return { isValid: true, reason: "Skipping validation" }; // Default to valid if API key is missing
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!openRouterKey) {
+    console.log("OPENROUTER_API_KEY not found, skipping validation");
+    return { isValid: true, reason: "Skipping validation" };
   }
 
-  // Basic validation first
   if (!topic || topic.trim().length < 2) {
     return { isValid: false, reason: "Topic is too short" };
   }
 
   const sanitizedTopic = topic.trim().toLowerCase();
-  // Check for common invalid inputs
-  if (
-    sanitizedTopic === "a" || 
-    sanitizedTopic === "test" || 
-    sanitizedTopic === "hi" ||
-    sanitizedTopic === "hello"
-  ) {
+  const invalidExamples = ["a", "test", "hi", "hello"];
+  if (invalidExamples.includes(sanitizedTopic)) {
     return { isValid: false, reason: "Please provide a real topic, not just a test word" };
   }
 
   try {
-    console.log(`Validating topic: "${topic}"`);
-    
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + geminiApiKey, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${openRouterKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are validating user input for a learning story generator app.
-            
-            Analyze this topic: "${topic}"
-            
-            Check if it's:
-            1. A real concept that can be explained
-            2. Not offensive or harmful
-            3. Not complete gibberish
-            4. Not purely random characters
-            5. Not too vague or ambiguous
-            6. A topic that can be taught or explained
-            
-            Output ONLY JSON in this exact format:
-            {
-              "isValid": boolean,
-              "reason": "short explanation if invalid or 'valid topic' if valid",
-              "suggestedTopic": "if the topic is not valid but is close to something valid, suggest a similar valid topic otherwise null"
-            }`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 200,
-        }
-      })
+        model: "mistralai/mixtral-8x7b-instruct",
+        messages: [
+          {
+            role: "system",
+            content: "You are an assistant validating user input for a learning story generator app.",
+          },
+          {
+            role: "user",
+            content: `Analyze this topic: "${topic}"
+
+Check if it's:
+1. A real concept that can be explained
+2. Not offensive or harmful
+3. Not complete gibberish
+4. Not purely random characters
+5. Not too vague or ambiguous
+6. A topic that can be taught or explained
+
+Output ONLY JSON in this exact format:
+{
+  "isValid": boolean,
+  "reason": "short explanation if invalid or 'valid topic' if valid",
+  "suggestedTopic": "if the topic is not valid but is close to something valid, suggest a similar valid topic otherwise null"
+}`
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 300,
+      }),
     });
 
     const data = await response.json();
-    
-    // Use default values instead of logging errors
-    if (!data.candidates || data.candidates.length === 0) {
-      return { isValid: true, reason: "Validation defaulting to valid" };
+
+    const rawText = data.choices?.[0]?.message?.content || "";
+
+    // Try to extract JSON
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    } else {
+      return { isValid: true, reason: "Defaulting to valid (no JSON found)" };
     }
-    
-    const text = data.candidates[0].content.parts[0].text;
-    
-    try {
-      // Extract JSON from response (handling cases where there might be markdown formatting)
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      } else {
-        return { isValid: true, reason: "Defaulting to valid" };
-      }
-    } catch (e) {
-      return { isValid: true, reason: "Defaulting to valid" };
-    }
-  } catch (error) {
+  } catch (err) {
+    console.error("Validation error:", err);
     return { isValid: true, reason: "API error, defaulting to valid" };
   }
 }

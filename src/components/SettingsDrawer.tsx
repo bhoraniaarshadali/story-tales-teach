@@ -111,7 +111,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
           About
         </h3>
         <p className="text-sm text-muted-foreground">
-          Idea by: <a href="https://www.linkedin.com/in/arshad-ali-bhorania/" target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">Arshad Ali Bhorania</a>
+          Idea by: <a href="https://www.linkedin.com/in/arshad-ali-bhorania/" target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">Arshad ali Bhorania</a>
         </p>
       </div>
     </div>

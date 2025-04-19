@@ -1,83 +1,90 @@
+// utils/analyzer.ts
+
+// Default fallback values in case OpenRouter API doesn't respond or parse correctly
+const defaultAnalysis = {
+  emotions: ["curious", "interested"],
+  category: "general",
+  characteristics: ["informative", "educational", "engaging"]
+};
 
 // Function to analyze topic and extract potential emotions
 export async function analyzeTopicEmotions(topic: string) {
-  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!geminiApiKey) {
-    console.log("Note: GEMINI_API_KEY not found, using default emotions");
-    return { 
-      emotions: ["curious", "interested"], 
-      category: "general",
-      characteristics: ["informative", "educational", "engaging"] 
-    };
+  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+
+  if (!openRouterApiKey) {
+    console.warn("OPENROUTER_API_KEY not found, returning default analysis");
+    return defaultAnalysis;
   }
-  
+
   try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + geminiApiKey, {
+    const prompt = `
+    Analyze this topic: "${topic}"
+
+    Identify:
+    1. The general category it falls into (e.g., "technology", "science", "arts", "business")
+    2. 3-5 emotions that someone might feel when learning about this topic
+    3. 3 key characteristics of this topic
+
+    Output ONLY JSON in this exact format:
+    {
+      "category": "category name",
+      "emotions": ["emotion1", "emotion2", "emotion3"],
+      "characteristics": ["characteristic1", "characteristic2", "characteristic3"]
+    }
+    `;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${openRouterApiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://storytalesteach.lovable.app",
+        "X-Title": "Story Tales Teach"
+      },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `Analyze this topic: "${topic}"
-            
-            Identify:
-            1. The general category it falls into (e.g., "technology", "science", "arts", "business")
-            2. 3-5 emotions that someone might feel when learning about this topic
-            3. 3 key characteristics of this topic
-            
-            Output ONLY JSON in this exact format:
-            {
-              "category": "category name",
-              "emotions": ["emotion1", "emotion2", "emotion3"],
-              "characteristics": ["characteristic1", "characteristic2", "characteristic3"]
-            }`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 200,
-        }
+        model: "mistralai/mixtral-8x7b-instruct",
+        messages: [
+          {
+            role: "system",
+            content: "You are an educational assistant that analyzes topics to extract educationally useful emotional and categorical metadata."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: {
+          type: "json_object"
+        },
+        temperature: 0.3,
+        max_tokens: 300
       })
     });
-    
+
     const data = await response.json();
-    
-    // Instead of showing error messages, we'll use default values when the API doesn't return what we expect
-    if (!data.candidates || data.candidates.length === 0) {
-      return { 
-        emotions: ["curious", "interested"], 
-        category: "general",
-        characteristics: ["informative", "educational", "engaging"] 
-      };
+
+    if (!data.choices || data.choices.length === 0) {
+      console.warn("OpenRouter API returned no choices, using default");
+      return defaultAnalysis;
     }
-    
-    const text = data.candidates[0].content.parts[0].text;
-    
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      } else {
-        return { 
-          emotions: ["curious", "interested"], 
-          category: "general",
-          characteristics: ["informative", "educational", "engaging"] 
-        };
+
+    const text = data.choices[0].message.content;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return parsed;
+      } catch (err) {
+        console.error("JSON parsing failed, falling back to default", err);
+        return defaultAnalysis;
       }
-    } catch (e) {
-      console.log("Using default emotions as parsing failed");
-      return { 
-        emotions: ["curious", "interested"], 
-        category: "general",
-        characteristics: ["informative", "educational", "engaging"] 
-      };
+    } else {
+      console.warn("No JSON structure found in response, using default");
+      return defaultAnalysis;
     }
-  } catch (error) {
-    console.log("Using default emotions as API call failed");
-    return { 
-      emotions: ["curious", "interested"], 
-      category: "general",
-      characteristics: ["informative", "educational", "engaging"] 
-    };
+  } catch (err) {
+    console.error("OpenRouter API call failed, using default", err);
+    return defaultAnalysis;
   }
 }

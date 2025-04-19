@@ -1,54 +1,70 @@
+// utils/characterGenerator.ts
 
-// Function to generate a character and details
+// Function to generate a character and details based on topic category
 export function generateCharacter(topic: string, category: string = "general") {
-  // Generate character based on topic category
   const characters = [
-    { name: "Rohit", emoji: "👨‍🎓", traits: "curious and analytical" },
-    { name: "Priya", emoji: "👩‍🔬", traits: "detail-oriented and methodical" },
-    { name: "Vikram", emoji: "👨‍💻", traits: "tech-savvy and logical" },
-    { name: "Meera", emoji: "👩‍🏫", traits: "patient and articulate" },
-    { name: "Ajay", emoji: "👨‍🚀", traits: "adventurous and creative" },
-    { name: "Neha", emoji: "👩‍⚕️", traits: "empathetic and precise" },
-    { name: "Raju", emoji: "👨‍🍳", traits: "practical and experimental" },
+    { name: "Ali", emoji: "👨‍🎓", traits: "curious and analytical" },
+    { name: "Dhruv", emoji: "👩‍🔬", traits: "detail-oriented and methodical" },
+    { name: "Arshad", emoji: "👨‍💻", traits: "tech-savvy and logical" },
+    { name: "Ayaan", emoji: "👩‍🏫", traits: "patient and articulate" },
+    { name: "Dev", emoji: "👨‍🚀", traits: "adventurous and creative" },
+    { name: "Patel", emoji: "👩‍⚕️", traits: "empathetic and precise" },
+    { name: "Ashfak", emoji: "👨‍🍳", traits: "practical and experimental" },
     { name: "Anjali", emoji: "👩‍🎨", traits: "creative and perceptive" },
-    { name: "Rajiv", emoji: "👨‍🔧", traits: "hands-on and resourceful" },
+    { name: "Akhilesh", emoji: "👨‍🔧", traits: "hands-on and resourceful" },
     { name: "Divya", emoji: "👩‍⚖️", traits: "analytical and fair-minded" },
-    { name: "Karan", emoji: "👨‍🌾", traits: "grounded and persistent" },
-    { name: "Shreya", emoji: "👩‍🎓", traits: "inquisitive and thoughtful" },
-    { name: "Arjun", emoji: "👨‍🔬", traits: "innovative and focused" },
-    { name: "Kavita", emoji: "👩‍💻", traits: "systematic and detail-oriented" },
-    { name: "Suresh", emoji: "👨‍🏫", traits: "inspiring and clear-minded" },
-    { name: "Ananya", emoji: "👩‍🚀", traits: "curious and ambitious" },
-    { name: "Mohan", emoji: "👨‍⚕️", traits: "careful and observant" },
-    { name: "Tanya", emoji: "👩‍🍳", traits: "creative and adaptable" },
-    { name: "Dinesh", emoji: "👨‍🎨", traits: "visionary and expressive" },
-    { name: "Pooja", emoji: "👩‍🔧", traits: "practical and solution-oriented" }
+    { name: "Arvind", emoji: "👨‍🌾", traits: "grounded and persistent" },
+    { name: "Hardik", emoji: "👩‍🎓", traits: "inquisitive and thoughtful" },
+    { name: "Himanshu", emoji: "👨‍🔬", traits: "innovative and focused" },
+    { name: "Yasir", emoji: "👩‍💻", traits: "systematic and detail-oriented" },
+    { name: "Maruf", emoji: "👨‍🏫", traits: "inspiring and clear-minded" },
+    { name: "Manish", emoji: "👩‍🚀", traits: "curious and ambitious" },
+    { name: "Kuldeep", emoji: "👨‍⚕️", traits: "careful and observant" },
+    { name: "Atik", emoji: "👩‍🍳", traits: "creative and adaptable" },
+    { name: "Saad", emoji: "👨‍🎨", traits: "visionary and expressive" },
+    { name: "Gautam", emoji: "👩‍🔧", traits: "practical and solution-oriented" }
   ];
-  
-  // Match character to topic category if possible
+
+  // Filter characters based on the category
   let filteredCharacters = characters;
-  
-  if (category === "technology" || category === "computer_science") {
-    filteredCharacters = characters.filter(char => 
-      char.traits.includes("tech-savvy") || char.traits.includes("logical") || char.traits.includes("analytical") || char.traits.includes("innovative") || char.traits.includes("systematic"));
-  } else if (category === "science" || category === "medicine") {
-    filteredCharacters = characters.filter(char => 
-      char.traits.includes("methodical") || char.traits.includes("analytical") || char.traits.includes("precise") || char.traits.includes("observant") || char.traits.includes("detail-oriented"));
-  } else if (category === "arts" || category === "humanities") {
-    filteredCharacters = characters.filter(char => 
-      char.traits.includes("creative") || char.traits.includes("articulate") || char.traits.includes("perceptive") || char.traits.includes("expressive") || char.traits.includes("visionary"));
-  } else if (category === "business" || category === "economics") {
-    filteredCharacters = characters.filter(char => 
-      char.traits.includes("practical") || char.traits.includes("methodical") || char.traits.includes("resourceful") || char.traits.includes("solution-oriented") || char.traits.includes("focused"));
+  switch (category.toLowerCase()) {
+    case "technology":
+    case "computer_science":
+      filteredCharacters = characters.filter(c =>
+        /tech-savvy|logical|analytical|innovative|systematic/.test(c.traits)
+      );
+      break;
+    case "science":
+    case "medicine":
+      filteredCharacters = characters.filter(c =>
+        /methodical|analytical|precise|observant|detail-oriented/.test(c.traits)
+      );
+      break;
+    case "arts":
+    case "humanities":
+      filteredCharacters = characters.filter(c =>
+        /creative|articulate|perceptive|expressive|visionary/.test(c.traits)
+      );
+      break;
+    case "business":
+    case "economics":
+      filteredCharacters = characters.filter(c =>
+        /practical|methodical|resourceful|solution-oriented|focused/.test(c.traits)
+      );
+      break;
+    default:
+      // Use all characters if no category match
+      filteredCharacters = characters;
   }
-  
-  // If no matching characters, use all characters
+
+  // Fallback to all characters if no match
   if (filteredCharacters.length === 0) {
     filteredCharacters = characters;
   }
-  
-  // Always get a different character - use timestamp to help with randomness
-  const timestamp = new Date().getTime();
+
+  // Generate random index using current timestamp
+  const timestamp = Date.now();
   const randomIndex = Math.floor((Math.random() * timestamp) % filteredCharacters.length);
+
   return filteredCharacters[randomIndex];
 }
