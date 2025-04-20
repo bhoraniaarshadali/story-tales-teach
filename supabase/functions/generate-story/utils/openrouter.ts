@@ -2,7 +2,7 @@
 
 export async function queryOpenRouter({
   prompt,
-  model = "mistralai/mixtral-8x7b-instruct",
+  model = "google/gemini-2.0-flash-exp:free", //mistralai/mixtral-8x7b-instruct
   temperature = 0.7,
   max_tokens = 500,
   title = "StoryTales AI"

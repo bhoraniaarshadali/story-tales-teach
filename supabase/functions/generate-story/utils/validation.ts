@@ -35,7 +35,7 @@ export async function validateTopic(topic: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "mistralai/mixtral-8x7b-instruct",
+        model: "google/gemini-2.0-flash-exp:free", //mistralai/mixtral-8x7b-instruct
         messages: [
           {
             role: "system",
