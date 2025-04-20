@@ -12,7 +12,9 @@ const StoryForm: React.FC<StoryFormProps> = ({
   isLoading
 }) => {
   const [topic, setTopic] = useState("");
-  const popularTopics = ["Artificial Intelligence", "Blockchain", "Meditation", "Climate Change", "Quantum Physics", "Time Management", "Growth Mindset", "Financial Literacy"];
+  const popularTopics = ["Artificial Intelligence", "Docker", "Cloud Computing",
+    "Machine Learning", "Kubernetes", "Android Activity"];
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim()) {
@@ -38,7 +40,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
         <Button type="submit" className="w-full" disabled={!topic.trim() || isLoading}>
           {isLoading ? "Creating Story..." : <>
               <Sparkles className="mr-2 h-4 w-4" />
-              Create Learning Story
+              Generate Learning Story
             </>}
         </Button>
       </form>

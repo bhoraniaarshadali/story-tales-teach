@@ -20,7 +20,7 @@ CRITICAL INSTRUCTION: Return ONLY a clean JSON object. DO NOT include markdown, 
 Generate a Hinglish story SPECIFICALLY about "${topic}" that:
 - Explains it in detail
 - Is educational and uses real-life examples
-- Mentions "${topic}" at least 5 times
+- Mentions "${topic}" at least 5 times  
 - Fully focuses on "${topic}"
 
 Character: ${character.name}, who is ${character.traits}
