@@ -2,46 +2,37 @@ import { analyzeTopicEmotions } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
 
 export async function generateStoryWithMixtral(topic) {
-  // Enhanced API key validation
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterApiKey) {
-    console.log("OpenRouter API key is missing");
-    throw new Error("OpenRouter API key is not configured. Please add the key in Supabase secrets.");
+    console.log("🔑 Missing API key");
+    throw new Error("API key missing in environment");
   }
 
   try {
-    // First analyze the topic to get emotions and category
     const topicAnalysis = await analyzeTopicEmotions(topic);
-    console.log("Topic Analysis complete");
+    console.log("✅ Topic analysis done");
 
-    // Generate a character that fits the topic
     const character = generateCharacter(topic, topicAnalysis.category);
 
-    // Create a more focused and specific prompt for Mixtral
     const prompt = `
-    CRITICAL INSTRUCTION: You MUST create an educational story SPECIFICALLY about "${topic}". 
-    The entire story MUST explain the ACTUAL CONCEPT of "${topic}" in detail.
+CRITICAL INSTRUCTION: Return ONLY a clean JSON object. DO NOT include markdown, backticks, or any explanation.
 
-    Character: ${character.name}, who is ${character.traits}
+Generate a Hinglish story SPECIFICALLY about "${topic}" that:
+- Explains it in detail
+- Is educational and uses real-life examples
+- Mentions "${topic}" at least 5 times
+- Fully focuses on "${topic}"
 
-    Emotions to incorporate: ${topicAnalysis.emotions.join(", ")}
+Character: ${character.name}, who is ${character.traits}
+Emotions: ${topicAnalysis.emotions.join(", ")}
 
-    Create a story in Hinglish that:
-    - Explains the core concepts of "${topic}"
-    - Uses real-life examples
-    - Is engaging and educational
-    - MENTIONS "${topic}" AT LEAST 5 TIMES in the content
-    - ENSURES the story is FULLY ABOUT "${topic}" not just mentioning it
-
-    Output MUST be a valid JSON with:
-    - title (in Hinglish)
-    - content (story explaining the topic)
-    - takeaway (key learnings)
-    - emotions (array of strings)
-    - keyPoints (array of technical/core points)
-    `;
-
-    console.log("Sending request to OpenRouter API");
+Output JSON must include:
+- title
+- content
+- takeaway
+- emotions (array)
+- keyPoints (array)
+`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -54,14 +45,8 @@ export async function generateStoryWithMixtral(topic) {
       body: JSON.stringify({
         model: "mistralai/mixtral-8x7b-instruct",
         messages: [
-          {
-            role: "system",
-            content: "You are an educational storyteller creating Hinglish stories that explain complex topics."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
+          { role: "system", content: "You are an educational Hinglish storyteller." },
+          { role: "user", content: prompt }
         ],
         temperature: 0.9,
         max_tokens: 1024
@@ -69,71 +54,66 @@ export async function generateStoryWithMixtral(topic) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`API error: ${response.status} - ${errorText}`);
-      throw new Error(`API error: ${response.status}`);
+      const err = await response.text();
+      console.log("❌ API error:", err);
+      throw new Error("Failed to fetch from OpenRouter");
     }
 
     const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || "";
+    console.log("📝 Mixtral raw output:\n", text);
 
-    if (!data.choices || data.choices.length === 0) {
-      console.log("No valid response from API");
-      throw new Error("No valid response from API");
+    // Soft cleanup: remove markdown/code fences, then try parse
+    let clean = text.trim();
+    if (clean.startsWith("```")) {
+      clean = clean.replace(/^```(json)?/, "").replace(/```$/, "").trim();
     }
 
-    const text = data.choices[0].message.content;
-    console.log("Raw Mixtral response:", text);
-
+    // Try to parse entire block OR first JSON-looking substring
+    let storyJson;
     try {
-      // Clean the response text
-      let jsonString = text.trim();
-
-      // Remove markdown-style JSON blocks if present
-      if (jsonString.startsWith("```")) {
-        jsonString = jsonString.replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
+      storyJson = JSON.parse(clean);
+    } catch {
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (!match) {
+        throw new Error("Mixtral output does not contain valid JSON");
       }
-
-      let storyJson = JSON.parse(jsonString);
-
-      // Ensure emotions is an array
-      if (storyJson.emotions && typeof storyJson.emotions === 'string') {
-        storyJson.emotions = storyJson.emotions.split(',').map((e) => e.trim());
-      } else if (!storyJson.emotions) {
-        storyJson.emotions = ["educational", "informative"];
-      }
-
-      // Validate story contains the topic
-      if (!storyContainsTopic(storyJson, topic)) {
-        console.log(`Story doesn't properly explain the topic: ${topic}`);
-        throw new Error(`Story doesn't adequately explain the topic: ${topic}`);
-      }
-
-      return {
-        ...storyJson,
-        character: {
-          name: character.name,
-          emoji: character.emoji,
-          traits: character.traits
-        },
-        topic: topic
-      };
-    } catch (parseError) {
-      console.log("JSON parsing issue:", parseError.message);
-      throw new Error("Could not parse story response");
+      storyJson = JSON.parse(match[0]);
     }
-  } catch (error) {
-    console.log("Story generation error:", error.message);
-    throw error;
+
+    // Normalize
+    if (typeof storyJson.emotions === "string") {
+      storyJson.emotions = storyJson.emotions.split(",").map((e) => e.trim());
+    }
+    if (!Array.isArray(storyJson.emotions)) {
+      storyJson.emotions = ["educational", "inspiring"];
+    }
+
+    // Validate content
+    if (!storyContainsTopic(storyJson, topic)) {
+      throw new Error("Generated story doesn’t properly explain the topic.");
+    }
+
+    return {
+      ...storyJson,
+      character: {
+        name: character.name,
+        emoji: character.emoji,
+        traits: character.traits
+      },
+      topic
+    };
+  } catch (err) {
+    console.log("🛑 Fatal error in story generation:", err.message);
+    throw err;
   }
 }
 
-// Enhanced validation that the story actually explains the requested topic
 function storyContainsTopic(story, topic) {
-  const topicLowerCase = topic.toLowerCase();
-  if (!story.content || typeof story.content !== 'string') return false;
-
-  const contentHasTopic = story.content.toLowerCase().includes(topicLowerCase);
-  const titleHasTopic = story.title && story.title.toLowerCase().includes(topicLowerCase);
-
-  return contentHasTopic && story.content.length >= 100;
+  const t = topic.toLowerCase();
+  return (
+    story.content?.toLowerCase().includes(t) &&
+    story.title?.toLowerCase().includes(t) &&
+    story.content.length > 100
+  );
 }
