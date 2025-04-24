@@ -21,9 +21,9 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     <header className="text-center mb-8 relative">
       <div className="absolute right-0 top-0 flex gap-2 items-center">
         <ThemeToggle />
-        <SettingsDrawer 
-          stories={stories} 
-          onViewStory={onViewStory} 
+        <SettingsDrawer
+          stories={stories}
+          onViewStory={onViewStory}
           onToggleFavorite={onToggleFavorite}
           onClearHistory={onClearHistory}
         />

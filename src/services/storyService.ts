@@ -31,6 +31,12 @@ export const generateStory = async (topic: string): Promise<StoryResponse> => {
     });
 
     if (error) {
+      console.log(error);
+      // Check if this is a 400 status code (invalid topic)
+      if (error.status === 400) {
+        // Return the data as a valid response since it contains the invalid topic message
+        return data as StoryResponse;
+      }
       console.error('Error calling generate-story function:', error);
       throw new Error(error.message || 'Failed to generate story');
     }

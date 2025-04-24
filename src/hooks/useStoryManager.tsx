@@ -42,20 +42,20 @@ export const useStoryManager = () => {
     setIsLoading(true);
     setPrevTopic(topic);
     setError(null); // Clear previous errors
-    
+
     try {
       console.log(`Generating story for topic: "${topic}"`);
       const generatedStory = await generateStory(topic);
-      
+
       // Verify that the story is actually about the requested topic
-      if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase())) {
+      if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase()) && generatedStory.title.toLowerCase().includes("Oops!")) {
         console.error(`Generated story doesn't contain topic "${topic}"`);
         toast.error(`Story generation failed for topic "${topic}". Please try again.`);
         setError(`We couldn't create a story about "${topic}". Please try again or try a different topic.`);
         setIsLoading(false);
         return;
       }
-      
+
       // Ensure the topic is saved in the story
       const storyWithMeta: Story = {
         ...generatedStory,
@@ -64,7 +64,7 @@ export const useStoryManager = () => {
         topic: topic, // Make sure we set the topic explicitly here
         isFavorite: false
       };
-      
+
       console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
       setStory(storyWithMeta);
       setStoryHistory(prev => [storyWithMeta, ...prev]);
@@ -85,15 +85,15 @@ export const useStoryManager = () => {
         isFavorite: !story.isFavorite
       });
     }
-    
-    setStoryHistory(prevHistory => 
-      prevHistory.map(item => 
-        item.id === storyId 
-          ? { ...item, isFavorite: !item.isFavorite } 
+
+    setStoryHistory(prevHistory =>
+      prevHistory.map(item =>
+        item.id === storyId
+          ? { ...item, isFavorite: !item.isFavorite }
           : item
       )
     );
-    
+
     toast.success("Story updated!");
   };
 
@@ -104,7 +104,7 @@ export const useStoryManager = () => {
       setError(null); // Clear any errors when viewing history
     }
   };
-  
+
   const clearHistory = () => {
     if (confirm("Are you sure you want to clear your story history? This cannot be undone.")) {
       setStoryHistory([]);
