@@ -29,7 +29,9 @@ serve(async (req) => {
     }
     console.log(`Generating story for topic: "${topic}"`);
     const validationResult = await validateTopic(topic);
+    console.log("aagya");
     console.log("Topic validation result:", JSON.stringify(validationResult));
+    // console.log("Topic validation result:", validationResult);
     if (!validationResult.isValid) {
       console.log(`Topic "${topic}" was rejected: ${validationResult.reason}`);
       const response = createInvalidTopicResponse(topic, validationResult.reason, validationResult.suggestedTopic);

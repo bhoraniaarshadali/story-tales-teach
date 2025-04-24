@@ -1,4 +1,4 @@
-
+// index.tsx
 import React from "react";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
@@ -31,8 +31,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
       <div className="container mx-auto px-4">
-        <PageHeader 
-          stories={storyHistory} 
+        <PageHeader
+          stories={storyHistory}
           onViewStory={viewHistoryStory}
           onToggleFavorite={toggleFavorite}
           onClearHistory={clearHistory}
@@ -53,16 +53,16 @@ const Index = () => {
           )}
 
           {error && !isLoading && (
-            <ErrorMessage 
-              error={error} 
+            <ErrorMessage
+              error={error}
               onTryAgain={handleTryAgain}
-              onClearError={() => setError(null)} 
+              onClearError={() => setError(null)}
             />
           )}
 
           {!error && (
-            <StoryDisplay 
-              story={story} 
+            <StoryDisplay
+              story={story}
               onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
             />
           )}

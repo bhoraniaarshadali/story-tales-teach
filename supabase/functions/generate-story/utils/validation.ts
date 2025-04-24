@@ -1,6 +1,7 @@
 import { corsHeaders } from "./cors.ts";
 // Smart topic validator using Mixtral
 export async function validateTopic(topic) {
+  console.log("function called");
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterKey) {
     console.log("🔑 OPENROUTER_API_KEY not found, skipping validation");
@@ -17,17 +18,30 @@ export async function validateTopic(topic) {
       suggestedTopic: null
     };
   }
+  // Check for common test inputs or gibberish
   const invalidExamples = [
     "a",
     "test",
     "hi",
-    "hello"
+    "hello",
+    "xyz",
+    "abc",
+    "123"
   ];
   if (invalidExamples.includes(cleanedTopic.toLowerCase())) {
     return {
       isValid: false,
       reason: "Topic sirf test word lag raha hai",
       suggestedTopic: null
+    };
+  }
+  // Detect gibberish by checking for patterns like repeated characters
+  const gibberishPattern = /([a-z])\1{2,}|([a-z]{1,2})(\2){2,}/i;
+  if (gibberishPattern.test(cleanedTopic)) {
+    return {
+      isValid: false,
+      reason: "Yeh topic gibberish lag raha hai",
+      suggestedTopic: "artificial intelligence" // Default suggestion for gibberish input
     };
   }
   try {
@@ -77,6 +91,15 @@ export async function validateTopic(topic) {
 // Return custom response if topic is invalid
 export function createInvalidTopicResponse(topic, reason, suggestedTopic) {
   const suggestionText = suggestedTopic ? `\n\nShayad aap "${suggestedTopic}" ke baare mein poochhna chaah rahe the? Yeh ek better topic ho sakta hai.` : "";
+  const randomSuggestions = [
+    "artificial intelligence",
+    "cloud computing",
+    "data science",
+    "clean energy",
+    "emotional intelligence"
+  ];
+  // If no suggestion was provided but we have a gibberish input, provide a random one
+  const finalSuggestedTopic = suggestedTopic || (reason.includes("gibberish") ? randomSuggestions[Math.floor(Math.random() * randomSuggestions.length)] : null);
   return new Response(JSON.stringify({
     title: "Oops! Topic Thoda Confusing Hai",
     content: `Aapne jo topic diya: "${topic}", wo samajhne mein thoda mushkil ho raha hai.\n\nReason: ${reason}${suggestionText}\n\nKya aap ise thoda aur clearly likh sakte hain?`,
@@ -85,13 +108,14 @@ export function createInvalidTopicResponse(topic, reason, suggestedTopic) {
       "confused",
       "curious"
     ],
-    topic
+    topic,
+    suggestedTopic: finalSuggestedTopic
   }), {
     headers: {
       ...corsHeaders,
       "Content-Type": "application/json"
     },
-    status: 200
+    status: 200 // We use 200 status so the frontend can handle the display
   });
 }
 export function normalizeTopic(topic) {
