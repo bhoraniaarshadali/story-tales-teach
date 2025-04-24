@@ -1,73 +1,113 @@
+import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
-} from "@/components/ui/dropdown-menu";
-import { Settings, Type } from "lucide-react";
-import { 
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useAccessibility } from "../contexts/AccessibilityContext";
-import { toast } from "sonner";
+type TextSize = "small" | "medium" | "large";
+type Theme = "light" | "dark" | "system";
 
-const AccessibilityControls = () => {
-  const { 
-    textSize, 
-    setTextSize
-  } = useAccessibility();
+interface AccessibilityContextType {
+  textSize: TextSize;
+  setTextSize: (size: TextSize) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}
+
+const defaultContext: AccessibilityContextType = {
+  textSize: "medium",
+  setTextSize: () => { },
+  theme: "system",
+  setTheme: () => { },
+};
+
+const AccessibilityContext = createContext<AccessibilityContextType>(defaultContext);
+
+export const useAccessibility = () => useContext(AccessibilityContext);
+
+interface AccessibilityProviderProps {
+  children: ReactNode;
+}
+
+export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ children }) => {
+  // Initialize state with values from localStorage if available
+  const [textSize, setTextSizeState] = useState<TextSize>(() => {
+    try {
+      const savedTextSize = localStorage.getItem("textSize");
+      return (savedTextSize as TextSize) || "medium";
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+      return "medium";
+    }
+  });
+
+  const [theme, setThemeState] = useState<Theme>(() => {
+    try {
+      const savedTheme = localStorage.getItem("theme");
+      return (savedTheme as Theme) || "system";
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+      return "system";
+    }
+  });
+
+  // Update localStorage when values change
+  useEffect(() => {
+    try {
+      localStorage.setItem("textSize", textSize);
+    } catch (error) {
+      console.error("Error writing to localStorage:", error);
+    }
+  }, [textSize]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("theme", theme);
+
+      // Apply theme to document
+      const root = window.document.documentElement;
+
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        root.classList.remove("light", "dark");
+        root.classList.add(systemTheme);
+      } else {
+        root.classList.remove("light", "dark");
+        root.classList.add(theme);
+      }
+    } catch (error) {
+      console.error("Error applying theme:", error);
+    }
+  }, [theme]);
+
+  // Create wrapper functions for setState to add any additional logic
+  const setTextSize = (size: TextSize) => {
+    setTextSizeState(size);
+  };
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+  };
+
+  // Listen for system theme changes if using system theme
+  useEffect(() => {
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+      const handleChange = (e: MediaQueryListEvent) => {
+        const root = window.document.documentElement;
+        root.classList.remove("light", "dark");
+        root.classList.add(e.matches ? "dark" : "light");
+      };
+
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme]);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Accessibility settings">
-          <Settings className="h-5 w-5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 p-2">
-        <DropdownMenuLabel className="font-normal text-muted-foreground">
-          Accessibility Settings
-        </DropdownMenuLabel>
-        
-        <DropdownMenuSeparator />
-        
-        <div className="p-2">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-medium flex items-center">
-                <Type className="h-4 w-4 mr-2" />
-                Text Size
-              </label>
-            </div>
-            <Select value={textSize} onValueChange={(value) => setTextSize(value as any)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select text size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Text Size</SelectLabel>
-                  <SelectItem value="small">Small</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="large">Large</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <AccessibilityContext.Provider value={{ textSize, setTextSize, theme, setTheme }}>
+      {children}
+    </AccessibilityContext.Provider>
   );
 };
 
-export default AccessibilityControls;
+export default AccessibilityContext;
