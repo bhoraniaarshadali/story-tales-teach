@@ -1,4 +1,3 @@
-// utils/characterGenerator.ts
 // Function to generate a character and details based on topic category
 export function generateCharacter(topic, category = "general") {
   const characters = [
@@ -105,22 +104,22 @@ export function generateCharacter(topic, category = "general") {
   ];
   // Filter characters based on the category
   let filteredCharacters = characters;
-  switch(category.toLowerCase()){
+  switch (category.toLowerCase()) {
     case "technology":
     case "computer_science":
-      filteredCharacters = characters.filter((c)=>/tech-savvy|logical|analytical|innovative|systematic/.test(c.traits));
+      filteredCharacters = characters.filter((c) => /tech-savvy|logical|analytical|innovative|systematic/.test(c.traits));
       break;
     case "science":
     case "medicine":
-      filteredCharacters = characters.filter((c)=>/methodical|analytical|precise|observant|detail-oriented/.test(c.traits));
+      filteredCharacters = characters.filter((c) => /methodical|analytical|precise|observant|detail-oriented/.test(c.traits));
       break;
     case "arts":
     case "humanities":
-      filteredCharacters = characters.filter((c)=>/creative|articulate|perceptive|expressive|visionary/.test(c.traits));
+      filteredCharacters = characters.filter((c) => /creative|articulate|perceptive|expressive|visionary/.test(c.traits));
       break;
     case "business":
     case "economics":
-      filteredCharacters = characters.filter((c)=>/practical|methodical|resourceful|solution-oriented|focused/.test(c.traits));
+      filteredCharacters = characters.filter((c) => /practical|methodical|resourceful|solution-oriented|focused/.test(c.traits));
       break;
     default:
       // Use all characters if no category match
@@ -130,8 +129,7 @@ export function generateCharacter(topic, category = "general") {
   if (filteredCharacters.length === 0) {
     filteredCharacters = characters;
   }
-  // Generate random index using current timestamp
-  const timestamp = Date.now();
-  const randomIndex = Math.floor(Math.random() * timestamp % filteredCharacters.length);
+  // Generate random index
+  const randomIndex = Math.floor(Math.random() * filteredCharacters.length);
   return filteredCharacters[randomIndex];
 }

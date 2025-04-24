@@ -1,21 +1,23 @@
-// utils/analyzer.ts
-
 // Default fallback values in case OpenRouter API doesn't respond or parse correctly
 const defaultAnalysis = {
-  emotions: ["curious", "interested"],
+  emotions: [
+    "curious",
+    "interested"
+  ],
   category: "general",
-  characteristics: ["informative", "educational", "engaging"]
+  characteristics: [
+    "informative",
+    "educational",
+    "engaging"
+  ]
 };
-
 // Function to analyze topic and extract potential emotions
-export async function analyzeTopicEmotions(topic: string) {
+export async function analyzeTopicEmotions(topic) {
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
-
   if (!openRouterApiKey) {
     console.warn("OPENROUTER_API_KEY not found, returning default analysis");
     return defaultAnalysis;
   }
-
   try {
     const prompt = `
     Analyze this topic: "${topic}"
@@ -32,17 +34,16 @@ export async function analyzeTopicEmotions(topic: string) {
       "characteristics": ["characteristic1", "characteristic2", "characteristic3"]
     }
     `;
-
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openRouterApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://storytalesteach.lovable.app",
+        "HTTP-Referer": "https://www.story-tales-teach.me/",
         "X-Title": "Story Tales Teach"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free", //mistralai/mixtral-8x7b-instruct
+        model: "google/gemini-2.0-flash-exp:free",
         messages: [
           {
             role: "system",
@@ -60,17 +61,13 @@ export async function analyzeTopicEmotions(topic: string) {
         max_tokens: 300
       })
     });
-
     const data = await response.json();
-
     if (!data.choices || data.choices.length === 0) {
       console.warn("OpenRouter API returned no choices, using default");
       return defaultAnalysis;
     }
-
     const text = data.choices[0].message.content;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);

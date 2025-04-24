@@ -43,11 +43,11 @@ Example format:
       headers: {
         "Authorization": `Bearer ${openRouterApiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://storytalesteach.lovable.app",
+        "HTTP-Referer": "https://story-tales-teach.me/",
         "X-Title": "Story Tales Teach"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free", //mistralai/mixtral-8x7b-instruct
+        model: "google/gemini-2.0-flash-exp:free",
         messages: [
           {
             role: "system",
@@ -72,7 +72,7 @@ Example format:
     }
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content || "";
-    console.log("📝 Mixtral raw output:\n", text);
+    console.log("📝 AI Model raw JSON output:\n", text);
     // Clean the output
     let clean = text.trim();
     clean = clean.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "").trim();
@@ -101,7 +101,7 @@ Example format:
     }
     // Normalize emotions
     if (typeof storyJson.emotions === "string") {
-      storyJson.emotions = storyJson.emotions.split(",").map((e)=>e.trim());
+      storyJson.emotions = storyJson.emotions.split(",").map((e) => e.trim());
     }
     if (!Array.isArray(storyJson.emotions)) {
       storyJson.emotions = [
@@ -111,8 +111,7 @@ Example format:
     }
     // Validate content
     if (!storyContainsTopic(storyJson, topic)) {
-      console.error("🛑 Story validation failed:", `Topic: "${topic}"`, `Normalized topic: "${normalizeTopic(topic)}"`, `Content includes topic: ${storyJson.content?.toLowerCase().includes(normalizeTopic(topic))}`, `Title includes topic: ${storyJson.title?.toLowerCase().includes(normalizeTopic(topic))}`, `Content length: ${storyJson.content?.length || 0}`, `Raw content: "${storyJson.content?.substring(0, 200)}..."` // Log first 200 chars
-      );
+      console.error("🛑 Story validation failed:", `Topic: "${topic}"`, `Normalized topic: "${normalizeTopic(topic)}"`, `Content includes topic: ${storyJson.content?.toLowerCase().includes(normalizeTopic(topic))}`, `Title includes topic: ${storyJson.title?.toLowerCase().includes(normalizeTopic(topic))}`, `Content length: ${storyJson.content?.length || 0}`, `Raw content: "${storyJson.content?.substring(0, 200)}..."`);
       throw new Error("Topic not properly explained");
     }
     return {
@@ -132,8 +131,8 @@ Example format:
 // Normalize topic for flexible matching
 function normalizeTopic(topic) {
   return topic.toLowerCase().replace(/[^a-z0-9]/g, " ") // Remove special characters
-  .replace(/\s+/g, " ") // Normalize spaces
-  .trim();
+    .replace(/\s+/g, " ") // Normalize spaces
+    .trim();
 }
 function storyContainsTopic(story, topic) {
   const normalizedTopic = normalizeTopic(topic);
@@ -141,9 +140,9 @@ function storyContainsTopic(story, topic) {
   const content = story.content?.toLowerCase() || "";
   const title = story.title?.toLowerCase() || "";
   // Check if any topic word or the full topic is present
-  const contentMatch = topicWords.some((word)=>content.includes(word)) || content.includes(normalizedTopic);
-  const titleMatch = topicWords.some((word)=>title.includes(word)) || title.includes(normalizedTopic);
-  const isValid = contentMatch && titleMatch && content.length > 30; // Even more relaxed length
+  const contentMatch = topicWords.some((word) => content.includes(word)) || content.includes(normalizedTopic);
+  const titleMatch = topicWords.some((word) => title.includes(word)) || title.includes(normalizedTopic);
+  const isValid = contentMatch && titleMatch && content.length > 30;
   if (!isValid) {
     console.log("Validation details:", {
       contentMatch,
