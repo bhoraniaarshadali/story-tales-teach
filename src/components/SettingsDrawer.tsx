@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,14 +10,14 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { 
-  Sheet, 
-  SheetClose, 
-  SheetContent, 
-  SheetDescription, 
-  SheetFooter, 
-  SheetHeader, 
-  SheetTitle, 
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger
 } from "@/components/ui/sheet";
 import { Trash2, Settings, HistoryIcon, LinkIcon } from "lucide-react";
@@ -52,22 +51,22 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
           <div className="flex flex-col gap-2">
             <span>Text Size</span>
             <div className="flex gap-2">
-              <Button 
-                variant={textSize === "small" ? "default" : "outline"} 
+              <Button
+                variant={textSize === "small" ? "default" : "outline"}
                 onClick={() => setTextSize("small")}
                 className="flex-1"
               >
                 Small
               </Button>
-              <Button 
-                variant={textSize === "medium" ? "default" : "outline"} 
+              <Button
+                variant={textSize === "medium" ? "default" : "outline"}
                 onClick={() => setTextSize("medium")}
                 className="flex-1"
               >
                 Medium
               </Button>
-              <Button 
-                variant={textSize === "large" ? "default" : "outline"} 
+              <Button
+                variant={textSize === "large" ? "default" : "outline"}
                 onClick={() => setTextSize("large")}
                 className="flex-1"
               >
@@ -84,11 +83,11 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             <HistoryIcon className="h-5 w-5 mr-2" />
             Story History
           </h3>
-          
+
           {stories.length > 0 && (
-            <Button 
-              variant="destructive" 
-              size="sm" 
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={onClearHistory}
               className="flex items-center"
             >
@@ -97,14 +96,14 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             </Button>
           )}
         </div>
-        
-        <StoryHistory 
-          stories={stories} 
-          onViewStory={onViewStory} 
+
+        <StoryHistory
+          stories={stories}
+          onViewStory={onViewStory}
           onToggleFavorite={onToggleFavorite}
         />
       </div>
-      
+
       <div>
         <h3 className="text-lg font-medium flex items-center mb-2">
           <LinkIcon className="h-5 w-5 mr-2" />
@@ -134,11 +133,11 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
               Adjust your preferences and manage your story history
             </DrawerDescription>
           </DrawerHeader>
-          
+
           <ScrollArea className="h-[70vh] px-4">
             <SettingsContent />
           </ScrollArea>
-          
+
           <DrawerFooter>
             <DrawerClose asChild>
               <Button variant="outline">Close</Button>
@@ -164,11 +163,11 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             Adjust your preferences and manage your story history
           </SheetDescription>
         </SheetHeader>
-        
+
         <ScrollArea className="h-[calc(100vh-180px)] pr-4 mt-6">
           <SettingsContent />
         </ScrollArea>
-        
+
         <SheetFooter className="mt-4">
           <SheetClose asChild>
             <Button variant="outline">Close</Button>

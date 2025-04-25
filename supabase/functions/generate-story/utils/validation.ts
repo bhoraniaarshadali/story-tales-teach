@@ -90,7 +90,7 @@ export async function validateTopic(topic) {
 }
 // Return custom response if topic is invalid
 export function createInvalidTopicResponse(topic, reason, suggestedTopic) {
-  const suggestionText = suggestedTopic ? `\n\nShayad aap "${suggestedTopic}" ke baare mein poochhna chaah rahe the? Yeh ek better topic ho sakta hai.` : "";
+  const suggestionText = suggestedTopic ? `\nAap chaahe to "${suggestedTopic}" ke baare mein puch sakte hai, Yeh ek better topic ho sakta hai.` : "";
   const randomSuggestions = [
     "artificial intelligence",
     "cloud computing",
