@@ -8,6 +8,7 @@ import PageHeader from "../components/PageHeader";
 import PageFooter from "../components/PageFooter";
 import ErrorMessage from "../components/ErrorMessage";
 import ScrollToTopButton from "../components/ScrollToTopButton";
+import AnimatedCursor from "../components/AnimatedCursor";
 import { useStoryManager } from "../hooks/useStoryManager";
 
 // Re-export the Story type for backward compatibility
@@ -30,6 +31,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
+      <AnimatedCursor />
       <div className="container mx-auto px-4">
         <PageHeader
           stories={storyHistory}
@@ -38,7 +40,7 @@ const Index = () => {
           onClearHistory={clearHistory}
         />
 
-        {story && <SessionTimer />}
+        <SessionTimer />
 
         <div className="flex flex-col items-center justify-center">
           <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
@@ -47,7 +49,7 @@ const Index = () => {
             <div className="mt-8">
               <LoadingSpinner />
               <p className="mt-2 text-center text-muted-foreground animate-pulse">
-                Creating your story about {prevTopic}...
+                Generating your story about {prevTopic}...
               </p>
             </div>
           )}

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,21 +15,25 @@ interface StoryDisplayProps {
 
 const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
   const { textSize } = useAccessibility();
-  
+
   if (!story) return null;
-  
+
   const textSizeClasses = {
     small: "text-sm",
     medium: "text-base",
     large: "text-lg"
   };
-  
+
   // Handle emotions whether it's a string, array, or undefined
-  const emotionsArray = Array.isArray(story.emotions) 
-    ? story.emotions 
+  const emotionsArray = Array.isArray(story.emotions)
+    ? story.emotions
     : typeof story.emotions === 'string' && story.emotions
-      ? story.emotions.split(',').map(e => e.trim()) 
+      ? story.emotions.split(',').map(e => e.trim())
       : [];
+
+  const createMarkup = (htmlContent: string) => {
+    return { __html: htmlContent };
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto mt-8">
@@ -56,12 +59,12 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {onToggleFavorite && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onToggleFavorite}
                 className="flex-shrink-0"
                 aria-label={story.isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -71,7 +74,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             )}
           </div>
         </div>
-        
+
         {emotionsArray.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Story emotions:</h3>
@@ -84,22 +87,33 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             </div>
           </div>
         )}
-        
+
         <div className="mb-4">
-          <AudioNarration 
+          <AudioNarration
             text={story.content}
             characterName={story.character?.name}
           />
         </div>
-        
+
         <div className={`prose prose-purple max-w-none ${textSizeClasses[textSize]}`}>
-          {story.content.split("\n\n").map((paragraph, i) => (
-            <p key={i} className="mb-4 text-foreground/90">
-              {paragraph}
-            </p>
-          ))}
+          {story.content.split("\n\n").map((paragraph, i) => {
+            if (paragraph.includes('<div class="suggestion-box">')) {
+              return (
+                <div
+                  key={i}
+                  className="my-4"
+                  dangerouslySetInnerHTML={createMarkup(paragraph)}
+                />
+              );
+            }
+            return (
+              <p key={i} className="mb-4 text-foreground/90">
+                {paragraph}
+              </p>
+            );
+          })}
         </div>
-        
+
         <div className="mt-8 p-4 bg-muted rounded-md border border-border">
           <h3 className="text-lg font-semibold text-primary mb-2 flex items-center">
             <Lightbulb className="mr-2 h-5 w-5 text-amber-500" />
@@ -107,7 +121,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
           </h3>
           <p className={`italic text-foreground/80 ${textSizeClasses[textSize]}`}>{story.takeaway}</p>
         </div>
-        
+
         {story.keyPoints && story.keyPoints.length > 0 && (
           <div className="mt-4 p-4 bg-accent/10 rounded-md border border-border">
             <h3 className="text-lg font-semibold text-primary mb-2 flex items-center">

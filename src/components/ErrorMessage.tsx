@@ -9,10 +9,10 @@ interface ErrorMessageProps {
   onClearError: () => void;
 }
 
-const ErrorMessage: React.FC<ErrorMessageProps> = ({ 
-  error, 
-  onTryAgain, 
-  onClearError 
+const ErrorMessage: React.FC<ErrorMessageProps> = ({
+  error,
+  onTryAgain,
+  onClearError
 }) => {
   return (
     <div className="mt-8 text-center p-6 bg-muted rounded-lg border border-border max-w-md">
