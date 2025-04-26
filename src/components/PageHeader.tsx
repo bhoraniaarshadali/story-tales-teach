@@ -1,4 +1,3 @@
-
 import React from "react";
 import ThemeToggle from "./ThemeToggle";
 import SettingsDrawer from "./SettingsDrawer";
@@ -19,7 +18,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <header className="text-center mb-8 relative">
-      <div className="absolute right-0 top-0 flex gap-2 items-center">
+      <div className="absolute right-0 top-0 flex flex-col md:flex-row gap-2 items-center">
         <ThemeToggle />
         <SettingsDrawer
           stories={stories}
@@ -31,8 +30,13 @@ const PageHeader: React.FC<PageHeaderProps> = ({
       <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
         Story Tales Teach
       </h1>
-      <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-        Learn any concept through engaging Hinglish stories. Enter a topic below and let the magic of storytelling make learning fun and memorable.
+      <p className="text-muted-foreground max-w-2xl mx-auto">
+        <span className="hidden md:inline text-lg">
+          Learn any concept through engaging Hinglish stories. Enter a topic below and let the magic of storytelling make learning fun and memorable.
+        </span>
+        <span className="md:hidden text-base">
+          Learn concepts through Hinglish stories. Type a topic to begin!
+        </span>
       </p>
     </header>
   );

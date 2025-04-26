@@ -8,6 +8,15 @@ const SESSION_START_TIME_KEY = "sessionStartTime";
 const FIRST_VISIT_KEY = "firstVisit";
 const WELCOME_SHOWN_KEY = "welcomeShown";
 
+// Format seconds into HH:MM:SS
+const formatTime = (totalSeconds: number): string => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 const SessionTimer: React.FC = () => {
   const [seconds, setSeconds] = useState(() => {
     // Initialize state with saved time if it exists
@@ -55,47 +64,9 @@ const SessionTimer: React.FC = () => {
       }
     }, 1000);
 
-    // Handle page visibility changes
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setIsActive(false);
-        if (toastId.current) {
-          toast.dismiss(toastId.current);
-        }
-        toastId.current = toast.info("Timer paused. We'll continue when you're back!", {
-          duration: 2000,
-        });
-      } else {
-        setIsActive(true);
-        if (toastId.current) {
-          toast.dismiss(toastId.current);
-        }
-        toastId.current = toast.success("Welcome back! Timer resumed.", {
-          duration: 2000,
-        });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Cleanup
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (toastId.current) {
-        toast.dismiss(toastId.current);
-      }
-    };
-  }, [isActive, seconds]);
-
-  // Format seconds into HH:MM:SS
-  const formatTime = (totalSeconds: number): string => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
+    // Cleanup interval on unmount
+    return () => clearInterval(timer);
+  }, [isActive, seconds]); // Added dependencies
 
   return (
     <div className="flex items-center justify-center mb-4">
@@ -128,7 +99,7 @@ const SessionTimer: React.FC = () => {
           transition={{ duration: 2, repeat: Infinity }}
         >
           <span>
-            You’ve dedicated!  Time invested: {formatTime(seconds)}
+            You've dedicated! Time invested: {formatTime(seconds)}
           </span>
         </motion.span>
       </motion.div>

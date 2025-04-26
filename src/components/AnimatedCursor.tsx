@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AnimatedCursor: React.FC = () => {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isVisible, setIsVisible] = useState(true);
+    const isMobile = useIsMobile();
 
     useEffect(() => {
+        if (isMobile) return;
+
         const handleMouseMove = (e: MouseEvent) => {
             setPosition({ x: e.clientX, y: e.clientY });
         };
@@ -21,9 +25,9 @@ const AnimatedCursor: React.FC = () => {
             window.removeEventListener('mouseenter', handleMouseEnter);
             window.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, []);
+    }, [isMobile]);
 
-    if (!isVisible) return null;
+    if (!isVisible || isMobile) return null;
 
     return (
         <div

@@ -12,11 +12,11 @@ const ThemeToggle: React.FC = () => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleTheme}
-            className="rounded-full" 
+            className="rounded-full"
             aria-label="Toggle theme"
           >
             {theme === "light" ? (
