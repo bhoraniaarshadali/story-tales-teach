@@ -69,7 +69,7 @@ const SessionTimer: React.FC = () => {
   }, [isActive, seconds]); // Added dependencies
 
   return (
-    <div className="flex items-center justify-center mb-4">
+    <div className="w-full flex items-center justify-center mb-4">
       <AnimatePresence>
         {showWelcome && (
           <motion.div
@@ -84,19 +84,21 @@ const SessionTimer: React.FC = () => {
       </AnimatePresence>
 
       <motion.div
-        className="flex items-center justify-center text-sm text-muted-foreground"
+        className="w-full max-w-2xl mx-auto px-4 flex items-center justify-center text-sm text-muted-foreground text-center"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
         <motion.div
           animate={isActive ? { rotate: 360 } : {}}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="flex items-center justify-center"
         >
           <Clock className="w-4 h-4 mr-1" />
         </motion.div>
         <motion.span
           animate={isActive ? { color: ["#64748b", "#3b82f6", "#64748b"] } : {}}
           transition={{ duration: 2, repeat: Infinity }}
+          className="text-center whitespace-nowrap"
         >
           <span>
             You've dedicated! Time invested: {formatTime(seconds)}
