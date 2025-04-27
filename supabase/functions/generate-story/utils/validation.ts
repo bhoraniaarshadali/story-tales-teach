@@ -58,9 +58,8 @@ const MESSAGES = {
  */ function isGibberish(topic) {
   // Pattern for repeated characters (aaa) or repeated patterns (hahaha)
   const repeatedPattern = /([a-z])\1{2,}|([a-z]{1,2})(\2){2,}/i;
-  // Pattern for random character combinations without vowels
-  const noVowelsPattern = /[^aeiou]{5,}/i;
-  return repeatedPattern.test(topic) || noVowelsPattern.test(topic);
+  // NOTE: Removed the 'noVowelsPattern' check to avoid false positives for technical topics like 'JDBC Connectivity', 'Cryptography', etc.
+  return repeatedPattern.test(topic);
 }
 /**
  * Performs basic validation checks without API calls
