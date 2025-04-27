@@ -2,11 +2,13 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Book, Brain, Lightbulb } from "lucide-react";
+import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
 import AudioNarration from "./AudioNarration";
+import html2canvas from "html2canvas";
+import { toast } from "sonner";
 
 interface StoryDisplayProps {
   story: Story | null;
@@ -15,6 +17,7 @@ interface StoryDisplayProps {
 
 const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
   const { textSize } = useAccessibility();
+  const cardRef = React.useRef<HTMLDivElement>(null);
 
   if (!story) return null;
 
@@ -35,9 +38,40 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
     return { __html: htmlContent };
   };
 
+  // Social share as image logic
+  const handleShareImage = async () => {
+    if (!cardRef.current) return;
+    const canvas = await html2canvas(cardRef.current, {
+      backgroundColor: null,
+      useCORS: true,
+      scale: 2
+    });
+    const dataUrl = canvas.toDataURL("image/png");
+    const blob = await (await fetch(dataUrl)).blob();
+
+    // Only share the image (no caption). If native share is not available, just download the image and show a simple toast.
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'story.png', { type: 'image/png' })] })) {
+      try {
+        await navigator.share({
+          files: [new File([blob], 'story.png', { type: 'image/png' })],
+          title: story.title
+        });
+        return;
+      } catch (e) {
+        // fallback to download
+      }
+    }
+    // Fallback: download image and show a simple toast
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'story.png';
+    link.click();
+    toast.success('Image downloaded! Now share it on your favorite app.');
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto mt-8">
-      <Card className="p-6 shadow-lg border-primary/20 bg-card">
+      <Card ref={cardRef} className="p-6 shadow-lg border-primary/20 bg-card">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-12 w-12 border-2 border-accent">
@@ -59,8 +93,17 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
               </div>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShareImage}
+              className="flex-shrink-0"
+              aria-label="Share story as image"
+              title="Share story as image"
+            >
+              <Share2 className="h-6 w-6 text-primary" />
+            </Button>
             {onToggleFavorite && (
               <Button
                 variant="ghost"

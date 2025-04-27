@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { generateStory } from "../services/storyService";
 import { toast } from "sonner";
@@ -79,11 +78,18 @@ export const useStoryManager = () => {
   };
 
   const toggleFavorite = (storyId: string) => {
+    let isNowFavorite = false;
     if (story && story.id === storyId) {
+      isNowFavorite = !story.isFavorite;
       setStory({
         ...story,
-        isFavorite: !story.isFavorite
+        isFavorite: isNowFavorite
       });
+    } else {
+      const found = storyHistory.find(item => item.id === storyId);
+      if (found) {
+        isNowFavorite = !found.isFavorite;
+      }
     }
 
     setStoryHistory(prevHistory =>
@@ -94,7 +100,11 @@ export const useStoryManager = () => {
       )
     );
 
-    toast.success("Story updated!");
+    if (isNowFavorite) {
+      toast.success("Story added to favorites!");
+    } else {
+      toast.success("Story removed from favorites!");
+    }
   };
 
   const viewHistoryStory = (storyId: string) => {
