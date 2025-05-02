@@ -1,3 +1,4 @@
+
 # Story Tales Teach - Project Documentation
 
 ## Overview
@@ -28,26 +29,74 @@ The project is organized into frontend and backend components:
 - Local storage and management of story history
 - Real-time feedback and session analytics
 
+## Application Architecture
+
+### Frontend Components
+- **StoryForm:** Handles user input for topic submission
+- **StoryDisplay:** Renders generated stories with proper formatting
+- **AudioNarration:** Provides text-to-speech functionality
+- **StoryHistory:** Manages previously generated stories
+- **AccessibilityControls:** Provides options for font size, contrast, and other accessibility features
+- **ThemeToggle:** Allows switching between dark and light modes
+- **SessionTimer:** Tracks user session duration
+
+### Backend Services
+- **Story Generation:** Uses Mixtral AI model via Supabase Edge Functions
+- **Topic Analysis:** Leverages Gemini API to validate topics and analyze emotional content
+- **Text-to-Speech:** Utilizes ElevenLabs API to convert story text to audio
+- **Local Storage:** Manages story history and user preferences
+
+### Data Flow
+1. User submits a topic through the StoryForm component
+2. The topic is validated using the Gemini API
+3. If valid, the topic is analyzed for emotional content
+4. The Mixtral AI model generates a story based on the topic and analysis
+5. The generated story is displayed and saved to local history
+6. User can listen to the story through audio narration
+
+## Technology Stack
+- **Frontend:**
+  - React 18.3.1
+  - TypeScript
+  - Tailwind CSS
+  - Shadcn UI components
+  - React Router for navigation
+  - Local storage for data persistence
+
+- **Backend:**
+  - Supabase Edge Functions (TypeScript/Deno)
+  - Serverless architecture for scalability
+
+- **AI Services:**
+  - Gemini API for topic analysis and validation
+  - ElevenLabs API for text-to-speech
+  - Mixtral AI model for story generation
+
+## Best Practices Implemented
+- Component-based architecture for reusability
+- Responsive design for all device sizes
+- Accessibility features for inclusive user experience
+- Error handling and fallback content
+- Performance optimization for quick loading
+- Dark/light mode support
+
 ## How It Works
 1. Users enter a topic they want to learn about.
 2. The system analyzes the topic and generates a Hinglish story with a unique character and educational content.
 3. Users can listen to the story via audio narration.
 4. Generated stories are saved locally for future reference and can be marked as favorites.
 
-## Technology Stack
-- **Frontend:** React, TypeScript, Tailwind CSS, Shadcn UI
-- **Backend:** Supabase Edge Functions (TypeScript)
-- **AI Services:** Gemini API for story generation, ElevenLabs API for text-to-speech
-
 ## Future Enhancements
 - User authentication and cloud storage
 - Support for multiple languages and interactive story elements
 - Educational features like quizzes and progress tracking
 - Social sharing and collaborative learning tools
+- Personalized learning paths based on user preferences
+- Enhanced analytics for tracking learning progress
+- Advanced AI model integration for more nuanced storytelling
 
 ## Credits
 Created by Arshad Ali Bhorania
 
 ---
-_Last updated: April 28, 2025_
-
+_Last updated: May 2, 2025_

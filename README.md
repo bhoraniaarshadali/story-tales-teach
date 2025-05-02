@@ -1,3 +1,4 @@
+
 # Story Tales Teach
 
 ## Overview
@@ -37,17 +38,20 @@ The project is organized into frontend and backend components:
 ## Technology Stack
 - **Frontend:** React, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend:** Supabase Edge Functions (TypeScript)
-- **AI Services:** Gemini API for story generation, ElevenLabs API for text-to-speech
+- **AI Services:** 
+  - Gemini API for topic analysis and validation
+  - ElevenLabs API for text-to-speech
+  - Mixtral AI model for story generation
 
 ## Future Enhancements
 - User authentication and cloud storage
 - Support for multiple languages and interactive story elements
 - Educational features like quizzes and progress tracking
 - Social sharing and collaborative learning tools
+- Personalized learning paths based on user preferences
 
 ## Credits
 Created by Arshad Ali Bhorania
 
 ---
-_Last updated: April 15, 2025_
-
+_Last updated: May 2, 2025_
