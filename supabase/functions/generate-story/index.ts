@@ -2,8 +2,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
+<<<<<<< HEAD
 import { generateStoryWithMixtral } from "./generator.ts";
 
+=======
+import { generateStoryWithGemini } from "./generator.ts";
+>>>>>>> trash
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
@@ -54,8 +58,12 @@ serve(async (req) => {
     
     console.log(`Validated topic "${topic}", generating story...`);
     try {
+<<<<<<< HEAD
       // Pass user preferences to the story generator
       const story = await generateStoryWithMixtral(topic, userPreferences);
+=======
+      const story = await generateStoryWithGemini(topic);
+>>>>>>> trash
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
       
       // Ensure we have all required fields

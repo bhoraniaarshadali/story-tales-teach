@@ -1,6 +1,7 @@
 
 import { analyzeTopicEmotions, personalizeContentForUser } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
+<<<<<<< HEAD
 
 // Predefined fallback stories for when the API returns invalid data
 const fallbackStories = {
@@ -14,6 +15,9 @@ const fallbackStories = {
 };
 
 export async function generateStoryWithMixtral(topic, userPreferences = null) {
+=======
+export async function generateStoryWithGemini(topic) {
+>>>>>>> trash
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterApiKey) {
     console.log("🔑 Missing API key");
