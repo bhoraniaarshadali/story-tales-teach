@@ -1,6 +1,6 @@
 import { analyzeTopicEmotions } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
-export async function generateStoryWithMixtral(topic) {
+export async function generateStoryWithGemini(topic) {
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterApiKey) {
     console.log("🔑 Missing API key");
