@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
-import { generateStoryWithMixtral } from "./generator.ts";
+import { generateStoryWithGemini } from "./generator.ts";
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
@@ -49,7 +49,7 @@ serve(async (req) => {
     }
     console.log(`Validated topic "${topic}", generating story...`);
     try {
-      const story = await generateStoryWithMixtral(topic);
+      const story = await generateStoryWithGemini(topic);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
       return new Response(JSON.stringify({
         ...story,
