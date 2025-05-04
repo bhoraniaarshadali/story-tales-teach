@@ -13,6 +13,8 @@ serve(async (req) => {
   try {
     const requestData = await req.json();
     const topic = requestData.topic;
+    const userPreferences = requestData.userPreferences || null; // Get user preferences if provided
+    
     if (!topic || typeof topic !== "string") {
       return new Response(JSON.stringify({
         title: "Topic Missing",
@@ -30,7 +32,7 @@ serve(async (req) => {
       });
     }
     
-    console.log(`Generating story for topic: "${topic}"`);
+    console.log(`Generating story for topic: "${topic}"${userPreferences ? " with user preferences" : ""}`);
     const validationResult = await validateTopic(topic);
     console.log("Topic validation result:", JSON.stringify(validationResult));
     
@@ -52,7 +54,8 @@ serve(async (req) => {
     
     console.log(`Validated topic "${topic}", generating story...`);
     try {
-      const story = await generateStoryWithMixtral(topic);
+      // Pass user preferences to the story generator
+      const story = await generateStoryWithMixtral(topic, userPreferences);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
       
       // Ensure we have all required fields
@@ -64,7 +67,10 @@ serve(async (req) => {
         emotions: Array.isArray(story.emotions) ? story.emotions : ["educational", "informative"],
         keyPoints: Array.isArray(story.keyPoints) ? story.keyPoints : [`Learn more about ${topic}`],
         topic: topic,
-        popupMessage: `🎉 Your story for "${topic}" is ready! Let's dive in.`
+        readingLevel: story.readingLevel || "intermediate",
+        recommendedAge: story.recommendedAge || "all-ages",
+        personalized: story.personalized || false,
+        popupMessage: `🎉 Your ${story.personalized ? "personalized" : ""} story for "${topic}" is ready! Let's dive in.`
       };
       
       return new Response(JSON.stringify(completeStory), {
@@ -90,6 +96,9 @@ serve(async (req) => {
           `${topic} connects to many other important areas of knowledge`
         ],
         topic: topic,
+        readingLevel: "intermediate",
+        recommendedAge: "all-ages",
+        personalized: false,
         popupMessage: "⚠️ We had to use a simpler story format. Enjoy learning anyway!"
       };
       
@@ -114,6 +123,9 @@ serve(async (req) => {
       keyPoints: ["Try a different topic", "Technology improves with feedback", "Every challenge is a learning opportunity"],
       error: error.message || "Unknown error",
       topic: "technical difficulties",
+      readingLevel: "intermediate",
+      recommendedAge: "all-ages",
+      personalized: false,
       popupMessage: "Something broke on our side. Give it another go!"
     }), {
       headers: {

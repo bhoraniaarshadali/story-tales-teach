@@ -1,3 +1,4 @@
+
 // index.tsx
 import React from "react";
 import StoryForm from "../components/StoryForm";
@@ -10,6 +11,7 @@ import ErrorMessage from "../components/ErrorMessage";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import AnimatedCursor from "../components/AnimatedCursor";
 import { useStoryManager } from "../hooks/useStoryManager";
+import type { UserPreferenceData } from "../components/UserPreferences";
 
 // Re-export the Story type for backward compatibility
 export type { Story } from "../hooks/useStoryManager";
@@ -29,6 +31,10 @@ const Index = () => {
     setError
   } = useStoryManager();
 
+  const onSubmitTopic = (topic: string, userPreferences?: UserPreferenceData) => {
+    handleSubmitTopic(topic, userPreferences);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
       <AnimatedCursor />
@@ -43,7 +49,10 @@ const Index = () => {
         <SessionTimer />
 
         <div className="flex flex-col items-center justify-center">
-          <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
+          <StoryForm 
+            onSubmit={onSubmitTopic} 
+            isLoading={isLoading} 
+          />
 
           {isLoading && (
             <div className="mt-8">

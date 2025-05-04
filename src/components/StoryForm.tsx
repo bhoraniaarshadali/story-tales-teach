@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import UserPreferences, { UserPreferenceData } from "./UserPreferences";
 
 interface StoryFormProps {
-  onSubmit: (topic: string) => void;
+  onSubmit: (topic: string, userPreferences?: UserPreferenceData) => void;
   isLoading: boolean;
   error?: Error | null;
   invalidTopicResponse?: any; // For handling custom error responses
@@ -20,6 +21,8 @@ const StoryForm: React.FC<StoryFormProps> = ({
   invalidTopicResponse
 }) => {
   const [topic, setTopic] = useState("");
+  const [userPreferences, setUserPreferences] = useState<UserPreferenceData | undefined>(undefined);
+  
   const popularTopics = [
     "Artificial Intelligence",
     "Docker",
@@ -32,24 +35,28 @@ const StoryForm: React.FC<StoryFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim()) {
-      onSubmit(topic);
+      onSubmit(topic, userPreferences);
     }
   };
 
   const handleTopicClick = (selectedTopic: string) => {
     setTopic(selectedTopic);
-    onSubmit(selectedTopic);
+    onSubmit(selectedTopic, userPreferences);
   };
 
   const handleTryAgain = () => {
     if (topic.trim()) {
-      onSubmit(topic);
+      onSubmit(topic, userPreferences);
     }
   };
 
   const handleSuggestedTopic = (suggestedTopic: string) => {
     setTopic(suggestedTopic);
-    onSubmit(suggestedTopic);
+    onSubmit(suggestedTopic, userPreferences);
+  };
+
+  const handlePreferencesChange = (newPreferences: UserPreferenceData) => {
+    setUserPreferences(newPreferences);
   };
 
   return (
@@ -60,7 +67,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
           What would you like to learn about?
         </h2>
         <p className="text-muted-foreground text-sm">
-          Enter any topic and get a fun Hinglish story that explains it
+          Enter any topic and get a {userPreferences ? "personalized" : "fun"} Hinglish story that explains it
         </p>
       </div>
 
@@ -124,23 +131,27 @@ const StoryForm: React.FC<StoryFormProps> = ({
           disabled={isLoading}
         />
         
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={!topic.trim() || isLoading}
-        >
-          {isLoading ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Creating Story...
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Learning Story
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2 justify-between">
+          <Button
+            type="submit"
+            className="flex-1"
+            disabled={!topic.trim() || isLoading}
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Creating Story...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Story
+              </>
+            )}
+          </Button>
+          
+          <UserPreferences onPreferencesChange={handlePreferencesChange} />
+        </div>
       </form>
 
       <div className="space-y-2">

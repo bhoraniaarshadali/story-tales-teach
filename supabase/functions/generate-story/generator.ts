@@ -1,5 +1,5 @@
 
-import { analyzeTopicEmotions } from "./utils/analyzer.ts";
+import { analyzeTopicEmotions, personalizeContentForUser } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
 
 // Predefined fallback stories for when the API returns invalid data
@@ -13,16 +13,36 @@ const fallbackStories = {
   }
 };
 
-export async function generateStoryWithMixtral(topic) {
+export async function generateStoryWithMixtral(topic, userPreferences = null) {
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterApiKey) {
     console.log("🔑 Missing API key");
     throw new Error("API key missing in environment");
   }
   try {
+    // Enhanced topic analysis with BERT-like classification
     const topicAnalysis = await analyzeTopicEmotions(topic);
-    console.log("✅ Topic analysis done");
-    const character = generateCharacter(topic, topicAnalysis.category);
+    console.log("✅ Topic analysis done", topicAnalysis);
+    
+    // Personalize content based on user preferences if available
+    const personalizedAnalysis = await personalizeContentForUser(topic, userPreferences, topicAnalysis);
+    console.log("✅ Personalization applied", personalizedAnalysis);
+    
+    // Generate character based on topic and personalized category
+    const character = generateCharacter(topic, personalizedAnalysis.category);
+    
+    // Craft a more personalized prompt based on user preferences
+    let readingLevelInstruction = "";
+    if (personalizedAnalysis.readingLevel) {
+      readingLevelInstruction = `Use a ${personalizedAnalysis.readingLevel} reading level that's suitable for ${personalizedAnalysis.recommendedAge}.`;
+    }
+    
+    // Include related favorite topics if available
+    let relatedTopicsInstruction = "";
+    if (personalizedAnalysis.relatedFavoriteTopics && personalizedAnalysis.relatedFavoriteTopics.length > 0) {
+      relatedTopicsInstruction = `Make connections to these related topics if possible: ${personalizedAnalysis.relatedFavoriteTopics.join(", ")}.`;
+    }
+    
     const prompt = `
 CRITICAL INSTRUCTION: Return ONLY a clean JSON object parseable by JSON.parse(). Do NOT include markdown, backticks, explanations, or any text outside the JSON. Any deviation will break the system.
 
@@ -31,9 +51,11 @@ Generate a Hinglish story SPECIFICALLY about "${topic}" that:
 - Is educational and uses real-life scenarios
 - Mentions "${topic}" EXACTLY as written at least 5 times in the content and once in the title
 - Fully focuses on "${topic}"
+${readingLevelInstruction}
+${relatedTopicsInstruction}
 
 Character: ${character.name}, who is ${character.traits}
-Emotions: ${topicAnalysis.emotions.join(", ")}
+Emotions: ${personalizedAnalysis.emotions.join(", ")}
 
 Output JSON must include:
 - title (must include "${topic}")
@@ -41,6 +63,7 @@ Output JSON must include:
 - takeaway (summarize importance of "${topic}")
 - emotions (array of strings)
 - keyPoints (array of strings, each mentioning "${topic}")
+- readingLevel: "${personalizedAnalysis.readingLevel}"
 
 Example format:
 {
@@ -48,7 +71,8 @@ Example format:
   "content": "This is about ${topic}. ${topic} helps... ${topic} is used in...",
   "takeaway": "${topic} is important because...",
   "emotions": ["curious", "excited"],
-  "keyPoints": ["${topic} is key for...", "${topic} enables..."]
+  "keyPoints": ["${topic} is key for...", "${topic} enables..."],
+  "readingLevel": "${personalizedAnalysis.readingLevel}"
 }
 `;
     
@@ -70,7 +94,7 @@ Example format:
           messages: [
             {
               role: "system",
-              content: "You are an educational Hinglish storyteller that outputs strictly valid JSON."
+              content: "You are an educational Hinglish storyteller that outputs strictly valid JSON. Tailor your stories to the appropriate reading level."
             },
             {
               role: "user",
@@ -81,7 +105,7 @@ Example format:
             type: "json_object"
           },
           temperature: 0.9,
-          max_tokens: 1024
+          max_tokens: 1500
         }),
         signal: controller.signal
       });
@@ -110,7 +134,14 @@ Example format:
       }
       
       // Enhanced JSON parsing with multiple fallback strategies
-      return parseJsonWithFallbacks(text, topic, character);
+      const generatedStory = parseJsonWithFallbacks(text, topic, character);
+      
+      // Add personalization metadata
+      generatedStory.personalized = !!userPreferences;
+      generatedStory.readingLevel = personalizedAnalysis.readingLevel;
+      generatedStory.recommendedAge = personalizedAnalysis.recommendedAge;
+      
+      return generatedStory;
     } catch (fetchError) {
       if (fetchError.name === "AbortError") {
         console.error("⏱️ OpenRouter API call timed out");
@@ -209,7 +240,9 @@ Understanding ${topic} helps us make better decisions and solve problems more ef
     character: defaultCharacter,
     emotions: ["curious", "interested", "educational"],
     keyPoints,
-    topic
+    topic,
+    readingLevel: "intermediate",
+    recommendedAge: "all-ages"
   };
 }
 

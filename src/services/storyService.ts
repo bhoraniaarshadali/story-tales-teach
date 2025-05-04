@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import type { UserPreferenceData } from "../components/UserPreferences";
 
 interface StoryResponse {
   title: string;
@@ -13,22 +14,28 @@ interface StoryResponse {
   emotions?: string[] | string; // Updated to handle both string and array
   keyPoints?: string[];
   topic?: string;
+  readingLevel?: string;
+  recommendedAge?: string;
+  personalized?: boolean;
   error?: string; // Add error field to handle graceful error responses
   suggestedTopic?: string; // Add suggested topic field for invalid topics
 }
 
-export const generateStory = async (topic: string): Promise<StoryResponse> => {
+export const generateStory = async (topic: string, userPreferences?: UserPreferenceData): Promise<StoryResponse> => {
   try {
     // Input validation
     if (!topic || topic.trim().length < 2) {
       throw new Error("Please provide a valid topic with at least 2 characters");
     }
 
-    console.log(`Sending topic to generate-story function: "${topic}"`);
+    console.log(`Sending topic to generate-story function: "${topic}"${userPreferences ? " with user preferences" : ""}`);
 
-    // Call the Supabase Edge Function
+    // Call the Supabase Edge Function with user preferences if available
     const { data, error } = await supabase.functions.invoke('generate-story', {
-      body: { topic: topic.trim() }
+      body: { 
+        topic: topic.trim(),
+        userPreferences: userPreferences || null
+      }
     });
 
     if (error) {
