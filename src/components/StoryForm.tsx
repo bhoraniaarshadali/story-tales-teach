@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,7 +123,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
           className="w-full"
           disabled={isLoading}
         />
-        {/* generate story wala button h ye  */}
+        
         <Button
           type="submit"
           className="w-full"
