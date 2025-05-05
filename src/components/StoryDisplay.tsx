@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle, Sparkles } from "lucide-react";
+import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
@@ -84,17 +83,6 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
                 <Badge variant="outline" className="text-sm bg-accent/30">Hinglish Story</Badge>
                 {story.topic && (
                   <Badge variant="secondary" className="text-sm">{story.topic}</Badge>
-                )}
-                {story.personalized && (
-                  <Badge variant="outline" className="text-sm bg-amber-100 text-amber-800 border-amber-300">
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Personalized
-                  </Badge>
-                )}
-                {story.readingLevel && (
-                  <Badge variant="outline" className="text-sm bg-blue-100 text-blue-800 border-blue-300">
-                    {story.readingLevel} level
-                  </Badge>
                 )}
                 {story.character?.traits && (
                   <Badge variant="outline" className="text-sm bg-muted">
