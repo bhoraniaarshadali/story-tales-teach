@@ -14,7 +14,27 @@ interface UserPreferences {
   previousTopics?: string[];
 }
 
-export async function generateStoryWithGemini(topic, userPreferences?: UserPreferences) {
+// Create a more detailed error response for JSON parsing failures
+function createErrorStory(topic: string, error: string, retryCount: number) {
+  return {
+    title: `Story about ${topic}`,
+    content: `We couldn't generate a detailed story about "${topic}" due to an issue with our AI system (${error}). ${
+      retryCount >= 3 ? "We've tried multiple times but encountered technical difficulties." : "Please try again!"
+    }`,
+    takeaway: retryCount >= 3 ? "Sometimes technology needs a break. Please try again later!" : "Sometimes technology needs a retry!",
+    emotions: [
+      "curious",
+      "educational"
+    ],
+    keyPoints: [
+      `Learn more about ${topic}`,
+      "Try again for a better story"
+    ],
+    retryCount: retryCount
+  };
+}
+
+export async function generateStoryWithLLM(topic: string, userPreferences?: UserPreferences) {
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterApiKey) {
     console.log("🔑 Missing API key");
@@ -87,70 +107,102 @@ Example format:
 }
 `;
 
-    console.log("🚀 Sending request to model with temperature:", modelConfig.temperature);
+    // Track retries and errors
+    let retryCount = 0;
+    let lastError = "";
+    let storyJson = null;
     
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openRouterApiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://story-tales-teach.me/",
-        "X-Title": "Story Tales Teach"
-      },
-      body: JSON.stringify({
-        model: modelConfig.model,
-        messages: [
-          {
-            role: "system",
-            content: `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON.`
+    while (retryCount < modelConfig.maxRetries && !storyJson) {
+      try {
+        const currentModel = retryCount >= modelConfig.maxRetries - 1 && modelConfig.fallbackModel 
+          ? modelConfig.fallbackModel 
+          : modelConfig.model;
+          
+        console.log(`🚀 Attempt ${retryCount + 1}/${modelConfig.maxRetries} - Sending request to model ${currentModel} with temperature: ${modelConfig.temperature}`);
+        
+        const response = await fetch(modelConfig.apiEndpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openRouterApiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://story-tales-teach.me/",
+            "X-Title": "Story Tales Teach"
           },
-          {
-            role: "user",
-            content: prompt
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              {
+                role: "system",
+                content: `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON.`
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            response_format: modelConfig.response_format,
+            temperature: modelConfig.temperature,
+            max_tokens: modelConfig.max_tokens
+          })
+        });
+        
+        if (!response.ok) {
+          const err = await response.text();
+          console.log(`❌ API error on attempt ${retryCount + 1}:`, err);
+          lastError = `API error: ${err.substring(0, 50)}...`;
+          retryCount++;
+          continue;
+        }
+        
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content || "";
+        console.log(`📝 AI Model raw JSON output (attempt ${retryCount + 1}):\n`, text.substring(0, 200) + "...");
+        
+        // Clean the output
+        let clean = text.trim();
+        clean = clean.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "").trim();
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        
+        if (jsonMatch) {
+          clean = jsonMatch[0];
+        }
+        
+        try {
+          storyJson = JSON.parse(clean);
+          console.log(`✅ Successfully parsed JSON on attempt ${retryCount + 1}`);
+        } catch (parseErr) {
+          console.error(`🛑 JSON parse failed on attempt ${retryCount + 1} for cleaned output:`, clean.substring(0, 200), "\nError:", parseErr.message);
+          lastError = `JSON parse error: ${parseErr.message}`;
+          retryCount++;
+          
+          // Add a small delay between retries
+          if (retryCount < modelConfig.maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-        ],
-        response_format: modelConfig.response_format,
-        temperature: modelConfig.temperature,
-        max_tokens: modelConfig.max_tokens
-      })
-    });
-    
-    if (!response.ok) {
-      const err = await response.text();
-      console.log("❌ API error:", err);
-      throw new Error("Failed to fetch from model provider");
+        }
+      } catch (requestErr) {
+        console.error(`🛑 Request error on attempt ${retryCount + 1}:`, requestErr.message);
+        lastError = `Request error: ${requestErr.message}`;
+        retryCount++;
+        
+        // Add a small delay between retries
+        if (retryCount < modelConfig.maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
     
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-    console.log("📝 AI Model raw JSON output:\n", text.substring(0, 200) + "...");
-    
-    // Clean the output
-    let clean = text.trim();
-    clean = clean.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "").trim();
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    let storyJson;
-    
-    if (jsonMatch) {
-      clean = jsonMatch[0];
-    }
-    
-    try {
-      storyJson = JSON.parse(clean);
-    } catch (err) {
-      console.error("🛑 JSON parse failed for cleaned output:", clean.substring(0, 200), "\nError:", err.message);
-      storyJson = {
-        title: `Story about ${topic}`,
-        content: `We couldn't generate a detailed story about "${topic}" due to an issue with the response format. Please try again!`,
-        takeaway: "Sometimes technology needs a retry!",
-        emotions: [
-          "curious",
-          "educational"
-        ],
-        keyPoints: [
-          `Learn more about ${topic}`,
-          "Try again for a better story"
-        ]
+    // If all attempts failed, return an error story
+    if (!storyJson) {
+      console.error(`🛑 All ${modelConfig.maxRetries} attempts failed. Last error: ${lastError}`);
+      return {
+        ...createErrorStory(topic, lastError, retryCount),
+        character: {
+          name: character.name,
+          emoji: character.emoji,
+          traits: character.traits
+        },
+        topic
       };
     }
     
@@ -169,7 +221,18 @@ Example format:
     // Validate content
     if (!storyContainsTopic(storyJson, topic)) {
       console.error("🛑 Story validation failed:", `Topic: "${topic}"`, `Normalized topic: "${normalizeTopic(topic)}"`, `Content includes topic: ${storyJson.content?.toLowerCase().includes(normalizeTopic(topic))}`, `Title includes topic: ${storyJson.title?.toLowerCase().includes(normalizeTopic(topic))}`, `Content length: ${storyJson.content?.length || 0}`, `Raw content: "${storyJson.content?.substring(0, 200)}..."`);
-      throw new Error("Topic not properly explained");
+      
+      // Instead of throwing an error, we'll return a story with a warning
+      storyJson.content = `${storyJson.content}\n\nNote: This story might not fully explain "${topic}" as requested. If you'd like a more focused explanation, please try again.`;
+      storyJson.qualityWarning = true;
+    }
+    
+    // Add retry info
+    if (retryCount > 0) {
+      storyJson.retryCount = retryCount;
+      if (retryCount >= modelConfig.maxRetries - 1 && modelConfig.fallbackModel) {
+        storyJson.usedFallbackModel = true;
+      }
     }
     
     return {
@@ -186,6 +249,9 @@ Example format:
     throw err;
   }
 }
+
+// Alias the function for backward compatibility
+export const generateStoryWithGemini = generateStoryWithLLM;
 
 // Normalize topic for flexible matching
 function normalizeTopic(topic) {

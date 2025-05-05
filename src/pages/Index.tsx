@@ -23,6 +23,7 @@ const Index = () => {
     prevTopic,
     storyHistory,
     userPreferences,
+    retryCount,
     handleSubmitTopic,
     toggleFavorite,
     viewHistoryStory,
@@ -51,6 +52,7 @@ const Index = () => {
             isLoading={isLoading}
             userPreferences={userPreferences}
             onUpdatePreferences={updateUserPreferences}
+            retryCount={retryCount}
           />
 
           {isLoading && (
@@ -58,6 +60,7 @@ const Index = () => {
               <LoadingSpinner />
               <p className="mt-2 text-center text-muted-foreground animate-pulse">
                 Generating your {userPreferences ? "personalized " : ""}story about {prevTopic}...
+                {retryCount > 0 && <span className="block text-sm mt-1">Attempt {retryCount + 1}...</span>}
               </p>
             </div>
           )}

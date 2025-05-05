@@ -12,11 +12,17 @@ export interface ModelConfig {
   // Maximum number of tokens to generate
   max_tokens: number;
   // Model provider (openrouter, openai, anthropic, etc.)
-  provider: 'openrouter' | 'openai' | 'anthropic' | 'custom';
+  provider: 'openrouter' | 'openai' | 'anthropic' | 'mistral' | 'custom';
   // Format for output
   response_format: {
     type: string;
   };
+  // Maximum number of retries for failed requests
+  maxRetries: number;
+  // Fallback model to use if primary model fails repeatedly
+  fallbackModel?: string;
+  // API endpoint for the model provider
+  apiEndpoint: string;
 }
 
 // Default configuration for story generation
@@ -28,7 +34,10 @@ export const defaultStoryModelConfig: ModelConfig = {
   provider: 'openrouter',
   response_format: {
     type: "json_object"
-  }
+  },
+  maxRetries: 3,
+  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
+  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
 };
 
 // More focused configuration for analytical tasks (topic analysis)
@@ -40,7 +49,10 @@ export const analyticalModelConfig: ModelConfig = {
   provider: 'openrouter',
   response_format: {
     type: "json_object"
-  }
+  },
+  maxRetries: 3,
+  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
+  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
 };
 
 // Configuration for generating personalized stories
@@ -52,7 +64,10 @@ export const personalizedStoryConfig: ModelConfig = {
   provider: 'openrouter',
   response_format: {
     type: "json_object"
-  }
+  },
+  maxRetries: 3,
+  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
+  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
 };
 
 // Get appropriate configuration based on task type

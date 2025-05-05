@@ -17,6 +17,9 @@ interface StoryResponse {
   suggestedTopic?: string;
   difficulty?: string;
   personalizedFor?: string[];
+  retryCount?: number;
+  usedFallbackModel?: boolean;
+  qualityWarning?: boolean;
 }
 
 export interface UserPreferences {

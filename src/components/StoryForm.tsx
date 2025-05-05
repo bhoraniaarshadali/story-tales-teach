@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, Settings, UserCircle } from "lucide-react";
+import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, Settings, UserCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { UserPreferences } from "../services/storyService";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StoryFormProps {
   onSubmit: (topic: string, usePersonalization: boolean) => void;
@@ -19,6 +20,7 @@ interface StoryFormProps {
   invalidTopicResponse?: any;
   userPreferences?: UserPreferences | null;
   onUpdatePreferences?: (preferences: UserPreferences) => void;
+  retryCount?: number;
 }
 
 const StoryForm: React.FC<StoryFormProps> = ({
@@ -27,7 +29,8 @@ const StoryForm: React.FC<StoryFormProps> = ({
   error,
   invalidTopicResponse,
   userPreferences,
-  onUpdatePreferences
+  onUpdatePreferences,
+  retryCount = 0
 }) => {
   const [topic, setTopic] = useState("");
   const [usePersonalization, setUsePersonalization] = useState(true);
@@ -85,108 +88,126 @@ const StoryForm: React.FC<StoryFormProps> = ({
           </p>
         </div>
         
-        {/* Personalization Settings */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" title="Personalization Settings">
-              <UserCircle className="h-5 w-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-4">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Personalization Settings</h3>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="use-personalization" className="text-sm">Use personalization</Label>
-                  <Switch 
-                    id="use-personalization" 
-                    checked={usePersonalization}
-                    onCheckedChange={setUsePersonalization}
-                  />
+        <div className="flex space-x-2">
+          {/* Model Information */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  Stories are generated using AI models that have been optimized for educational content.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          {/* Personalization Settings */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" title="Personalization Settings">
+                <UserCircle className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Personalization Settings</h3>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="use-personalization" className="text-sm">Use personalization</Label>
+                    <Switch 
+                      id="use-personalization" 
+                      checked={usePersonalization}
+                      onCheckedChange={setUsePersonalization}
+                    />
+                  </div>
+                  
+                  {userPreferences?.previousTopics?.length ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Previous topics</Label>
+                      <div className="flex flex-wrap gap-1">
+                        {userPreferences.previousTopics.map((topic, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  
+                  {userPreferences?.favoriteTopics?.length ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Favorite topics</Label>
+                      <div className="flex flex-wrap gap-1">
+                        {userPreferences.favoriteTopics.map((topic, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 
-                {userPreferences?.previousTopics?.length ? (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Previous topics</Label>
-                    <div className="flex flex-wrap gap-1">
-                      {userPreferences.previousTopics.map((topic, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                          {topic}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="reading-level">Reading Level</Label>
+                  <Select 
+                    value={userPreferences?.readingLevel || 'intermediate'} 
+                    onValueChange={(value) => handlePreferenceChange('readingLevel', value)}
+                  >
+                    <SelectTrigger id="reading-level">
+                      <SelectValue placeholder="Select reading level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                {userPreferences?.favoriteTopics?.length ? (
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Favorite topics</Label>
-                    <div className="flex flex-wrap gap-1">
-                      {userPreferences.favoriteTopics.map((topic, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
-                          {topic}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="language-preference">Language Style</Label>
+                  <Select 
+                    value={userPreferences?.languagePreference || 'hinglish'} 
+                    onValueChange={(value) => handlePreferenceChange('languagePreference', value)}
+                  >
+                    <SelectTrigger id="language-preference">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hinglish">Hinglish</SelectItem>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="hindi">Hindi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="learning-style">Learning Style</Label>
+                  <Select 
+                    value={userPreferences?.learningStyle || 'reading'} 
+                    onValueChange={(value) => handlePreferenceChange('learningStyle', value)}
+                  >
+                    <SelectTrigger id="learning-style">
+                      <SelectValue placeholder="Select learning style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visual">Visual</SelectItem>
+                      <SelectItem value="auditory">Auditory</SelectItem>
+                      <SelectItem value="reading">Reading/Writing</SelectItem>
+                      <SelectItem value="kinesthetic">Practical/Examples</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="reading-level">Reading Level</Label>
-                <Select 
-                  value={userPreferences?.readingLevel || 'intermediate'} 
-                  onValueChange={(value) => handlePreferenceChange('readingLevel', value)}
-                >
-                  <SelectTrigger id="reading-level">
-                    <SelectValue placeholder="Select reading level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="language-preference">Language Style</Label>
-                <Select 
-                  value={userPreferences?.languagePreference || 'hinglish'} 
-                  onValueChange={(value) => handlePreferenceChange('languagePreference', value)}
-                >
-                  <SelectTrigger id="language-preference">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hinglish">Hinglish</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="hindi">Hindi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="learning-style">Learning Style</Label>
-                <Select 
-                  value={userPreferences?.learningStyle || 'reading'} 
-                  onValueChange={(value) => handlePreferenceChange('learningStyle', value)}
-                >
-                  <SelectTrigger id="learning-style">
-                    <SelectValue placeholder="Select learning style" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="visual">Visual</SelectItem>
-                    <SelectItem value="auditory">Auditory</SelectItem>
-                    <SelectItem value="reading">Reading/Writing</SelectItem>
-                    <SelectItem value="kinesthetic">Practical/Examples</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Error handling section */}
@@ -224,7 +245,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                 disabled={isLoading}
                 className="flex items-center"
               >
-                <RefreshCw className="mr-1 h-3 w-3" /> Try Again
+                <RefreshCw className="mr-1 h-3 w-3" /> Try Again {retryCount > 0 ? `(${retryCount + 1})` : ""}
               </Button>
               <Button
                 variant="default"
@@ -235,6 +256,19 @@ const StoryForm: React.FC<StoryFormProps> = ({
                 Try Another Topic
               </Button>
             </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {retryCount >= 3 && !error && !invalidTopicResponse && (
+        <Alert variant="warning" className="bg-yellow-50 border-yellow-200 text-yellow-800">
+          <Info className="h-4 w-4" />
+          <AlertTitle className="font-medium">
+            Having trouble generating stories
+          </AlertTitle>
+          <AlertDescription>
+            We're experiencing some technical difficulties. If your story doesn't look right, 
+            try again later or with a different topic.
           </AlertDescription>
         </Alert>
       )}

@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
-import { generateStoryWithGemini } from "./generator.ts";
+import { generateStoryWithLLM } from "./generator.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,14 +56,26 @@ serve(async (req) => {
     
     console.log(`Validated topic "${topic}", generating story...`);
     try {
-      const story = await generateStoryWithGemini(topic, userPreferences);
+      const story = await generateStoryWithLLM(topic, userPreferences);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
+      
+      // Handle retry information in the response
+      let popupMessage = userPreferences 
+        ? `🎉 Your personalized story for "${topic}" is ready! Tailored just for you.`
+        : `🎉 Your story for "${topic}" is ready! Let's dive in.`;
+      
+      // If we had to retry or use a fallback model, add that information to the popup message
+      if (story.retryCount && story.retryCount > 0) {
+        if (story.retryCount >= 3) {
+          popupMessage = `📢 We had some challenges creating your story, but we've managed to deliver one using ${story.usedFallbackModel ? 'our backup system' : 'multiple attempts'}!`;
+        } else if (story.qualityWarning) {
+          popupMessage = `📝 Your story is ready, but may not cover "${topic}" perfectly. Feel free to try again if needed.`;
+        }
+      }
       
       return new Response(JSON.stringify({
         ...story,
-        popupMessage: userPreferences 
-          ? `🎉 Your personalized story for "${topic}" is ready! Tailored just for you.` 
-          : `🎉 Your story for "${topic}" is ready! Let's dive in.`
+        popupMessage
       }), {
         headers: {
           ...corsHeaders,

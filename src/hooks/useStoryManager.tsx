@@ -19,6 +19,9 @@ export interface Story {
   keyPoints?: string[];
   difficulty?: string;
   personalizedFor?: string[];
+  retryCount?: number;
+  usedFallbackModel?: boolean;
+  qualityWarning?: boolean;
 }
 
 export const useStoryManager = () => {
@@ -28,6 +31,7 @@ export const useStoryManager = () => {
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   // Load story history from localStorage
   useEffect(() => {
@@ -87,6 +91,11 @@ export const useStoryManager = () => {
     setIsLoading(true);
     setPrevTopic(topic);
     setError(null); // Clear previous errors
+    
+    // If it's not a retry of the same topic, reset the retry counter
+    if (topic !== prevTopic) {
+      setRetryCount(0);
+    }
 
     try {
       console.log(`Generating story for topic: "${topic}"${usePersonalization ? " with personalization" : ""}`);
@@ -123,16 +132,31 @@ export const useStoryManager = () => {
       setStory(storyWithMeta);
       setStoryHistory(prev => [storyWithMeta, ...prev]);
       
-      // Show appropriate toast based on personalization
-      if (usePersonalization && userPreferences && storyWithMeta.personalizedFor?.length) {
+      // Show appropriate toast based on generation information
+      if (storyWithMeta.retryCount && storyWithMeta.retryCount > 0) {
+        if (storyWithMeta.usedFallbackModel) {
+          toast.info("We had to use our backup system to create your story due to technical issues.");
+        } else if (storyWithMeta.retryCount >= 3) {
+          toast.warning("We encountered some challenges generating your story, but succeeded after multiple attempts.");
+        } else if (storyWithMeta.qualityWarning) {
+          toast.info("Your story is ready, but may not fully cover the topic. Feel free to try again.");
+        }
+      } else if (usePersonalization && userPreferences && storyWithMeta.personalizedFor?.length) {
         toast.success("Personalized story created just for you!");
       } else {
         toast.success("Story created successfully!");
       }
     } catch (error) {
       console.error("Error generating story:", error);
-      toast.error("Failed to create story. Please try again.");
-      setError(`We couldn't create a story about "${topic}". Please try again or try a different topic.`);
+      setRetryCount(prevRetry => prevRetry + 1);
+      
+      if (retryCount >= 2) {
+        toast.error("Multiple generation attempts failed. We're having technical difficulties.");
+        setError(`We're having trouble creating stories at the moment. Please try again later or try a different topic.`);
+      } else {
+        toast.error("Failed to create story. Please try again.");
+        setError(`We couldn't create a story about "${topic}". Please try again or try a different topic.`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -207,6 +231,7 @@ export const useStoryManager = () => {
     prevTopic,
     storyHistory,
     userPreferences,
+    retryCount,
     handleSubmitTopic,
     toggleFavorite,
     viewHistoryStory,
