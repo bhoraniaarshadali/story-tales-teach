@@ -1,24 +1,36 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
+import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, Settings, UserCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { UserPreferences } from "../services/storyService";
+import { Badge } from "@/components/ui/badge";
 
 interface StoryFormProps {
-  onSubmit: (topic: string) => void;
+  onSubmit: (topic: string, usePersonalization: boolean) => void;
   isLoading: boolean;
   error?: Error | null;
-  invalidTopicResponse?: any; // For handling custom error responses
+  invalidTopicResponse?: any;
+  userPreferences?: UserPreferences | null;
+  onUpdatePreferences?: (preferences: UserPreferences) => void;
 }
 
 const StoryForm: React.FC<StoryFormProps> = ({
   onSubmit,
   isLoading,
   error,
-  invalidTopicResponse
+  invalidTopicResponse,
+  userPreferences,
+  onUpdatePreferences
 }) => {
   const [topic, setTopic] = useState("");
+  const [usePersonalization, setUsePersonalization] = useState(true);
   const popularTopics = [
     "Artificial Intelligence",
     "Docker",
@@ -31,36 +43,150 @@ const StoryForm: React.FC<StoryFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim()) {
-      onSubmit(topic);
+      onSubmit(topic, usePersonalization);
     }
   };
 
   const handleTopicClick = (selectedTopic: string) => {
     setTopic(selectedTopic);
-    onSubmit(selectedTopic);
+    onSubmit(selectedTopic, usePersonalization);
   };
 
   const handleTryAgain = () => {
     if (topic.trim()) {
-      onSubmit(topic);
+      onSubmit(topic, usePersonalization);
     }
   };
 
   const handleSuggestedTopic = (suggestedTopic: string) => {
     setTopic(suggestedTopic);
-    onSubmit(suggestedTopic);
+    onSubmit(suggestedTopic, usePersonalization);
+  };
+  
+  const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
+    if (onUpdatePreferences && userPreferences) {
+      onUpdatePreferences({
+        ...userPreferences,
+        [key]: value
+      });
+    }
   };
 
   return (
     <Card className="w-full max-w-md p-6 space-y-6 bg-card">
-      <div>
-        <h2 className="text-xl font-semibold mb-2 flex items-center">
-          <BookOpen className="mr-2 h-5 w-5 text-primary" />
-          What would you like to learn about?
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Enter any topic and get a fun Hinglish story that explains it
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-semibold mb-2 flex items-center">
+            <BookOpen className="mr-2 h-5 w-5 text-primary" />
+            What would you like to learn about?
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Enter any topic and get a fun Hinglish story that explains it
+          </p>
+        </div>
+        
+        {/* Personalization Settings */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" title="Personalization Settings">
+              <UserCircle className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-4">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Personalization Settings</h3>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="use-personalization" className="text-sm">Use personalization</Label>
+                  <Switch 
+                    id="use-personalization" 
+                    checked={usePersonalization}
+                    onCheckedChange={setUsePersonalization}
+                  />
+                </div>
+                
+                {userPreferences?.previousTopics?.length ? (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Previous topics</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {userPreferences.previousTopics.map((topic, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                
+                {userPreferences?.favoriteTopics?.length ? (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Favorite topics</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {userPreferences.favoriteTopics.map((topic, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="reading-level">Reading Level</Label>
+                <Select 
+                  value={userPreferences?.readingLevel || 'intermediate'} 
+                  onValueChange={(value) => handlePreferenceChange('readingLevel', value)}
+                >
+                  <SelectTrigger id="reading-level">
+                    <SelectValue placeholder="Select reading level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="language-preference">Language Style</Label>
+                <Select 
+                  value={userPreferences?.languagePreference || 'hinglish'} 
+                  onValueChange={(value) => handlePreferenceChange('languagePreference', value)}
+                >
+                  <SelectTrigger id="language-preference">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hinglish">Hinglish</SelectItem>
+                    <SelectItem value="english">English</SelectItem>
+                    <SelectItem value="hindi">Hindi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="learning-style">Learning Style</Label>
+                <Select 
+                  value={userPreferences?.learningStyle || 'reading'} 
+                  onValueChange={(value) => handlePreferenceChange('learningStyle', value)}
+                >
+                  <SelectTrigger id="learning-style">
+                    <SelectValue placeholder="Select learning style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="visual">Visual</SelectItem>
+                    <SelectItem value="auditory">Auditory</SelectItem>
+                    <SelectItem value="reading">Reading/Writing</SelectItem>
+                    <SelectItem value="kinesthetic">Practical/Examples</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Error handling section */}
@@ -122,7 +248,6 @@ const StoryForm: React.FC<StoryFormProps> = ({
           className="w-full"
           disabled={isLoading}
         />
-        {/* generate story wala button h ye  */}
         <Button
           type="submit"
           className="w-full"
@@ -136,7 +261,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              Generate Learning Story
+              Generate {usePersonalization && userPreferences ? "Personalized" : ""} Learning Story
             </>
           )}
         </Button>

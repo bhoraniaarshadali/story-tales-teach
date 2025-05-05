@@ -1,3 +1,4 @@
+
 // index.tsx
 import React from "react";
 import StoryForm from "../components/StoryForm";
@@ -21,12 +22,14 @@ const Index = () => {
     error,
     prevTopic,
     storyHistory,
+    userPreferences,
     handleSubmitTopic,
     toggleFavorite,
     viewHistoryStory,
     clearHistory,
     handleTryAgain,
-    setError
+    setError,
+    updateUserPreferences
   } = useStoryManager();
 
   return (
@@ -43,13 +46,18 @@ const Index = () => {
         <SessionTimer />
 
         <div className="flex flex-col items-center justify-center">
-          <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
+          <StoryForm 
+            onSubmit={handleSubmitTopic} 
+            isLoading={isLoading}
+            userPreferences={userPreferences}
+            onUpdatePreferences={updateUserPreferences}
+          />
 
           {isLoading && (
             <div className="mt-8">
               <LoadingSpinner />
               <p className="mt-2 text-center text-muted-foreground animate-pulse">
-                Generating your story about {prevTopic}...
+                Generating your {userPreferences ? "personalized " : ""}story about {prevTopic}...
               </p>
             </div>
           )}

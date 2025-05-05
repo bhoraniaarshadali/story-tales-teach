@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle } from "lucide-react";
+import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle, UserCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
@@ -80,10 +81,25 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             <div>
               <h2 className="text-3xl font-bold text-primary">{story.title}</h2>
               <div className="flex flex-wrap gap-2 mt-1">
-                <Badge variant="outline" className="text-sm bg-accent/30">Hinglish Story</Badge>
+                {story.personalizedFor?.length ? (
+                  <Badge variant="default" className="text-sm bg-primary/80 flex items-center gap-1">
+                    <UserCircle className="h-3 w-3" />
+                    Personalized
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-sm bg-accent/30">Hinglish Story</Badge>
+                )}
+                
+                {story.difficulty && (
+                  <Badge variant="secondary" className="text-sm">
+                    {story.difficulty} level
+                  </Badge>
+                )}
+                
                 {story.topic && (
                   <Badge variant="secondary" className="text-sm">{story.topic}</Badge>
                 )}
+                
                 {story.character?.traits && (
                   <Badge variant="outline" className="text-sm bg-muted">
                     <Brain className="h-3 w-3 mr-1" />
@@ -117,6 +133,23 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             )}
           </div>
         </div>
+
+        {/* Personalization details */}
+        {story.personalizedFor && story.personalizedFor.length > 0 && (
+          <div className="mb-4 bg-primary/10 p-3 rounded-md border border-primary/20">
+            <h3 className="text-sm font-medium text-primary/80 mb-2 flex items-center">
+              <UserCircle className="mr-2 h-4 w-4" />
+              Personalized for you:
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {story.personalizedFor.map((aspect, index) => (
+                <Badge key={index} variant="outline" className="text-xs bg-primary/5">
+                  {aspect}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         {emotionsArray.length > 0 && (
           <div className="mb-4">

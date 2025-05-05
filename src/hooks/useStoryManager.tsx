@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { generateStory } from "../services/storyService";
+import { generateStory, UserPreferences } from "../services/storyService";
 import { toast } from "sonner";
 
 export interface Story {
@@ -17,6 +17,8 @@ export interface Story {
   };
   emotions?: string[] | string;
   keyPoints?: string[];
+  difficulty?: string;
+  personalizedFor?: string[];
 }
 
 export const useStoryManager = () => {
@@ -25,26 +27,73 @@ export const useStoryManager = () => {
   const [prevTopic, setPrevTopic] = useState<string | null>(null);
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
 
+  // Load story history from localStorage
   useEffect(() => {
     const savedStories = localStorage.getItem("storyHistory");
     if (savedStories) {
       setStoryHistory(JSON.parse(savedStories));
     }
+    
+    // Load user preferences from localStorage
+    const savedPreferences = localStorage.getItem("userPreferences");
+    if (savedPreferences) {
+      setUserPreferences(JSON.parse(savedPreferences));
+    }
   }, []);
 
+  // Save story history to localStorage
   useEffect(() => {
     localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
   }, [storyHistory]);
 
-  const handleSubmitTopic = async (topic: string) => {
+  // Save user preferences to localStorage
+  useEffect(() => {
+    if (userPreferences) {
+      localStorage.setItem("userPreferences", JSON.stringify(userPreferences));
+    }
+  }, [userPreferences]);
+
+  // Update user preferences
+  const updateUserPreferences = (newPreferences: UserPreferences) => {
+    setUserPreferences(prev => ({
+      ...(prev || {}),
+      ...newPreferences
+    }));
+    
+    toast.success("Your preferences have been updated!");
+  };
+
+  // Track user's previous topics
+  const updatePreviousTopics = (topic: string) => {
+    if (!userPreferences) return;
+    
+    const previousTopics = userPreferences.previousTopics || [];
+    
+    // Add the new topic to the beginning of the list and keep only the last 5
+    const updatedTopics = [
+      topic,
+      ...previousTopics.filter(t => t !== topic)
+    ].slice(0, 5);
+    
+    setUserPreferences(prev => ({
+      ...(prev || {}),
+      previousTopics: updatedTopics
+    }));
+  };
+
+  const handleSubmitTopic = async (topic: string, usePersonalization = true) => {
     setIsLoading(true);
     setPrevTopic(topic);
     setError(null); // Clear previous errors
 
     try {
-      console.log(`Generating story for topic: "${topic}"`);
-      const generatedStory = await generateStory(topic);
+      console.log(`Generating story for topic: "${topic}"${usePersonalization ? " with personalization" : ""}`);
+      
+      // If personalization is enabled and we have preferences, use them
+      const preferences = usePersonalization && userPreferences ? userPreferences : undefined;
+      const generatedStory = await generateStory(topic, preferences);
 
       // Verify that the story is actually about the requested topic
       if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase()) && generatedStory.title.toLowerCase().includes("Oops!")) {
@@ -65,9 +114,21 @@ export const useStoryManager = () => {
       };
 
       console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
+      
+      // Update previous topics if personalization is enabled
+      if (usePersonalization) {
+        updatePreviousTopics(topic);
+      }
+      
       setStory(storyWithMeta);
       setStoryHistory(prev => [storyWithMeta, ...prev]);
-      toast.success("Story created successfully!");
+      
+      // Show appropriate toast based on personalization
+      if (usePersonalization && userPreferences && storyWithMeta.personalizedFor?.length) {
+        toast.success("Personalized story created just for you!");
+      } else {
+        toast.success("Story created successfully!");
+      }
     } catch (error) {
       console.error("Error generating story:", error);
       toast.error("Failed to create story. Please try again.");
@@ -99,6 +160,17 @@ export const useStoryManager = () => {
           : item
       )
     );
+
+    // Update favorites in user preferences
+    if (isNowFavorite && story?.topic) {
+      const currentFavorites = userPreferences?.favoriteTopics || [];
+      if (!currentFavorites.includes(story.topic)) {
+        updateUserPreferences({
+          ...userPreferences,
+          favoriteTopics: [...currentFavorites, story.topic].slice(0, 10) // Keep only 10 favorites
+        });
+      }
+    }
 
     if (isNowFavorite) {
       toast.success("Story added to favorites!");
@@ -134,11 +206,13 @@ export const useStoryManager = () => {
     error,
     prevTopic,
     storyHistory,
+    userPreferences,
     handleSubmitTopic,
     toggleFavorite,
     viewHistoryStory,
     clearHistory,
     handleTryAgain,
-    setError
+    setError,
+    updateUserPreferences
   };
 };

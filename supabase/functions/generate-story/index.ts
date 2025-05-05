@@ -1,16 +1,22 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
 import { generateStoryWithGemini } from "./generator.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders
     });
   }
+  
   try {
     const requestData = await req.json();
     const topic = requestData.topic;
+    // Extract user preferences if provided
+    const userPreferences = requestData.userPreferences || null;
+    
     if (!topic || typeof topic !== "string") {
       return new Response(JSON.stringify({
         title: "Topic Missing",
@@ -27,11 +33,11 @@ serve(async (req) => {
         status: 400
       });
     }
-    console.log(`Generating story for topic: "${topic}"`);
+    
+    console.log(`Generating story for topic: "${topic}"${userPreferences ? " with personalization" : ""}`);
     const validationResult = await validateTopic(topic);
-    console.log("aagya");
     console.log("Topic validation result:", JSON.stringify(validationResult));
-    // console.log("Topic validation result:", validationResult);
+    
     if (!validationResult.isValid) {
       console.log(`Topic "${topic}" was rejected: ${validationResult.reason}`);
       const response = createInvalidTopicResponse(topic, validationResult.reason, validationResult.suggestedTopic);
@@ -47,13 +53,17 @@ serve(async (req) => {
         status: 400
       });
     }
+    
     console.log(`Validated topic "${topic}", generating story...`);
     try {
-      const story = await generateStoryWithGemini(topic);
+      const story = await generateStoryWithGemini(topic, userPreferences);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
+      
       return new Response(JSON.stringify({
         ...story,
-        popupMessage: `🎉 Your story for "${topic}" is ready! Let's dive in.`
+        popupMessage: userPreferences 
+          ? `🎉 Your personalized story for "${topic}" is ready! Tailored just for you.` 
+          : `🎉 Your story for "${topic}" is ready! Let's dive in.`
       }), {
         headers: {
           ...corsHeaders,

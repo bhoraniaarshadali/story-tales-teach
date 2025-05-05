@@ -1,4 +1,7 @@
-// Default fallback values in case OpenRouter API doesn't respond or parse correctly
+
+import { getModelConfig } from './modelConfig.ts';
+
+// Default fallback values in case API doesn't respond or parse correctly
 const defaultAnalysis = {
   emotions: [
     "curious",
@@ -11,6 +14,7 @@ const defaultAnalysis = {
     "engaging"
   ]
 };
+
 // Function to analyze topic and extract potential emotions
 export async function analyzeTopicEmotions(topic) {
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
@@ -18,7 +22,10 @@ export async function analyzeTopicEmotions(topic) {
     console.warn("OPENROUTER_API_KEY not found, returning default analysis");
     return defaultAnalysis;
   }
+  
   try {
+    const modelConfig = getModelConfig('analysis');
+    
     const prompt = `
     Analyze this topic: "${topic}"
 
@@ -34,6 +41,7 @@ export async function analyzeTopicEmotions(topic) {
       "characteristics": ["characteristic1", "characteristic2", "characteristic3"]
     }
     `;
+    
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -43,7 +51,7 @@ export async function analyzeTopicEmotions(topic) {
         "X-Title": "Story Tales Teach"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        model: modelConfig.model,
         messages: [
           {
             role: "system",
@@ -54,18 +62,18 @@ export async function analyzeTopicEmotions(topic) {
             content: prompt
           }
         ],
-        response_format: {
-          type: "json_object"
-        },
-        temperature: 0.3,
-        max_tokens: 300
+        response_format: modelConfig.response_format,
+        temperature: modelConfig.temperature,
+        max_tokens: modelConfig.max_tokens
       })
     });
+    
     const data = await response.json();
     if (!data.choices || data.choices.length === 0) {
-      console.warn("OpenRouter API returned no choices, using default");
+      console.warn("API returned no choices, using default");
       return defaultAnalysis;
     }
+    
     const text = data.choices[0].message.content;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -81,7 +89,7 @@ export async function analyzeTopicEmotions(topic) {
       return defaultAnalysis;
     }
   } catch (err) {
-    console.error("OpenRouter API call failed, using default", err);
+    console.error("API call failed, using default", err);
     return defaultAnalysis;
   }
 }
