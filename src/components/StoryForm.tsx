@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,12 +45,17 @@ const StoryForm: React.FC<StoryFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim()) {
+      console.log(`Submitting topic "${topic}" with personalization: ${usePersonalization}`);
+      if (usePersonalization && userPreferences) {
+        console.log(`User preferences: ${JSON.stringify(userPreferences)}`);
+      }
       onSubmit(topic, usePersonalization);
     }
   };
 
   const handleTopicClick = (selectedTopic: string) => {
     setTopic(selectedTopic);
+    console.log(`Selected preset topic "${selectedTopic}" with personalization: ${usePersonalization}`);
     onSubmit(selectedTopic, usePersonalization);
   };
 
@@ -68,6 +72,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
   
   const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
     if (onUpdatePreferences && userPreferences) {
+      console.log(`Updating preference: ${key} = ${value}`);
       onUpdatePreferences({
         ...userPreferences,
         [key]: value

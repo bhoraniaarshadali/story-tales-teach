@@ -35,6 +35,10 @@ serve(async (req) => {
     }
     
     console.log(`Generating story for topic: "${topic}"${userPreferences ? " with personalization" : ""}`);
+    if (userPreferences) {
+      console.log("User preferences received:", JSON.stringify(userPreferences));
+    }
+    
     const validationResult = await validateTopic(topic);
     console.log("Topic validation result:", JSON.stringify(validationResult));
     
@@ -58,6 +62,10 @@ serve(async (req) => {
     try {
       const story = await generateStoryWithLLM(topic, userPreferences);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
+      if (userPreferences) {
+        console.log("Generated story with personalization:", 
+          story.personalizedFor ? story.personalizedFor.join(", ") : "none");
+      }
       
       // Handle retry information in the response
       let popupMessage = userPreferences 
