@@ -66,6 +66,7 @@ export const generateStoryWithLLM = async (
     provider = AIProvider.DEFAULT,
     fallbackProvider,
     maxRetries = 2,
+    timeout = 30000,
     debugMode = false
   } = config;
 
