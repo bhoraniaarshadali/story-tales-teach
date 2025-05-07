@@ -192,6 +192,7 @@ Example format:
         storyJson.usedFallbackModel = true;
       }
     }
+<<<<<<< HEAD
     // Add personalization info
     if (userPreferences) {
       const personalizedFor = [];
@@ -213,10 +214,45 @@ Example format:
       if (personalizedFor.length > 0) {
         storyJson.personalizedFor = personalizedFor;
       }
+=======
+    
+    // Add personalization info
+    if (userPreferences) {
+      const personalizedFor = [];
+      
+      if (userPreferences.readingLevel) {
+        personalizedFor.push(`${userPreferences.readingLevel} reading level`);
+      }
+      
+      if (userPreferences.languagePreference) {
+        personalizedFor.push(`${userPreferences.languagePreference} language style`);
+      }
+      
+      if (userPreferences.learningStyle) {
+        personalizedFor.push(`${userPreferences.learningStyle} learning style`);
+      }
+      
+      if (userPreferences.previousTopics?.length) {
+        personalizedFor.push(`previous topic knowledge`);
+      }
+      
+      if (userPreferences.favoriteTopics?.length) {
+        personalizedFor.push(`favorite topics`);
+      }
+      
+      if (personalizedFor.length > 0) {
+        storyJson.personalizedFor = personalizedFor;
+      }
+      
+>>>>>>> personalization-setting
       if (userPreferences.readingLevel) {
         storyJson.difficulty = userPreferences.readingLevel;
       }
     }
+<<<<<<< HEAD
+=======
+    
+>>>>>>> personalization-setting
     return {
       ...storyJson,
       character: {

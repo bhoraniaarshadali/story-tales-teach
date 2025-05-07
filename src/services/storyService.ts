@@ -40,6 +40,9 @@ export const generateStory = async (topic: string, userPreferences?: UserPrefere
     }
 
     console.log(`Sending topic to generate-story function: "${topic}"${userPreferences ? " with personalization" : ""}`);
+    if (userPreferences) {
+      console.log("User preferences:", JSON.stringify(userPreferences));
+    }
 
     // Call the Supabase Edge Function with user preferences if available
     const { data, error } = await supabase.functions.invoke('generate-story', {

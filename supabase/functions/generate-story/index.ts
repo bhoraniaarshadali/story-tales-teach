@@ -33,6 +33,10 @@ serve(async (req) => {
     if (userPreferences) {
       console.log("User preferences received:", JSON.stringify(userPreferences));
     }
+<<<<<<< HEAD
+=======
+    
+>>>>>>> personalization-setting
     const validationResult = await validateTopic(topic);
     console.log("Topic validation result:", JSON.stringify(validationResult));
     if (!validationResult.isValid) {
@@ -55,8 +59,15 @@ serve(async (req) => {
       const story = await generateStoryWithLLM(topic, userPreferences);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
       if (userPreferences) {
+<<<<<<< HEAD
         console.log("Generated story with personalization:", story.personalizedFor ? story.personalizedFor.join(", ") : "none");
       }
+=======
+        console.log("Generated story with personalization:", 
+          story.personalizedFor ? story.personalizedFor.join(", ") : "none");
+      }
+      
+>>>>>>> personalization-setting
       // Handle retry information in the response
       let popupMessage = userPreferences ? `🎉 Your personalized story for "${topic}" is ready! Tailored just for you.` : `🎉 Your story for "${topic}" is ready! Let's dive in.`;
       // If we had to retry or use a fallback model, add that information to the popup message

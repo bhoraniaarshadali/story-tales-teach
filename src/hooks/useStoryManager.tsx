@@ -102,6 +102,12 @@ export const useStoryManager = () => {
       
       // If personalization is enabled and we have preferences, use them
       const preferences = usePersonalization && userPreferences ? userPreferences : undefined;
+      
+      // Log preferences to help debug
+      if (preferences) {
+        console.log("Sending preferences to API:", JSON.stringify(preferences));
+      }
+      
       const generatedStory = await generateStory(topic, preferences);
 
       // Verify that the story is actually about the requested topic
@@ -123,6 +129,7 @@ export const useStoryManager = () => {
       };
 
       console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
+      console.log(`Personalization applied:`, storyWithMeta.personalizedFor || "none");
       
       // Update previous topics if personalization is enabled
       if (usePersonalization) {

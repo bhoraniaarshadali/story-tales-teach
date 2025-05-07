@@ -1,6 +1,7 @@
 
 // index.tsx
-import React from "react";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -11,11 +12,13 @@ import ErrorMessage from "../components/ErrorMessage";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import AnimatedCursor from "../components/AnimatedCursor";
 import { useStoryManager } from "../hooks/useStoryManager";
+import { getStoryIdFromUrl } from "../utils/shareUtils";
 
 // Re-export the Story type for backward compatibility
 export type { Story } from "../hooks/useStoryManager";
 
 const Index = () => {
+  const navigate = useNavigate();
   const {
     story,
     isLoading,
@@ -33,10 +36,31 @@ const Index = () => {
     updateUserPreferences
   } = useStoryManager();
 
+  // Check for story ID in URL when component mounts
+  useEffect(() => {
+    const storyId = getStoryIdFromUrl();
+    if (storyId) {
+      console.log(`Detected shared story ID: ${storyId}`);
+      
+      // Check if the story exists in history
+      const existsInHistory = storyHistory.some(s => s.id === storyId);
+      
+      if (existsInHistory) {
+        // If it exists locally, just view it
+        console.log("Story found in local history, displaying");
+        viewHistoryStory(storyId);
+      } else {
+        // If not in local history, redirect to the share page
+        console.log("Story not found in local history, redirecting to share page");
+        navigate(`/share/${storyId}`);
+      }
+    }
+  }, [storyHistory, viewHistoryStory, navigate]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
+    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-6 md:py-12">
       <AnimatedCursor />
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 max-w-full md:max-w-4xl lg:max-w-5xl">
         <PageHeader
           stories={storyHistory}
           onViewStory={viewHistoryStory}
@@ -57,11 +81,11 @@ const Index = () => {
 
           {isLoading && (
             <div className="mt-8">
-              <LoadingSpinner />
-              <p className="mt-2 text-center text-muted-foreground animate-pulse">
-                Generating your {userPreferences ? "personalized " : ""}story about {prevTopic}...
-                {retryCount > 0 && <span className="block text-sm mt-1">Attempt {retryCount + 1}...</span>}
-              </p>
+              <LoadingSpinner 
+                topic={prevTopic}
+                isPersonalized={!!userPreferences}
+                retryCount={retryCount}
+              />
             </div>
           )}
 
