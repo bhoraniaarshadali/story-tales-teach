@@ -142,7 +142,8 @@ const MESSAGES = {
         "X-Title": "Story Generator App"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash-exp:free",
+        //old version= mistralai/mistral-small-3.1-24b-instruct
+        model: "mistralai/mistral-7b-instruct:free",
         messages: [
           {
             role: "system",

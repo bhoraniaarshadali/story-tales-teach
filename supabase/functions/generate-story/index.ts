@@ -1,22 +1,18 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./utils/cors.ts";
 import { validateTopic, createInvalidTopicResponse } from "./utils/validation.ts";
 import { generateStoryWithLLM } from "./generator.ts";
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders
     });
   }
-  
   try {
     const requestData = await req.json();
     const topic = requestData.topic;
     // Extract user preferences if provided
     const userPreferences = requestData.userPreferences || null;
-    
     if (!topic || typeof topic !== "string") {
       return new Response(JSON.stringify({
         title: "Topic Missing",
@@ -33,11 +29,12 @@ serve(async (req) => {
         status: 400
       });
     }
-    
     console.log(`Generating story for topic: "${topic}"${userPreferences ? " with personalization" : ""}`);
+    if (userPreferences) {
+      console.log("User preferences received:", JSON.stringify(userPreferences));
+    }
     const validationResult = await validateTopic(topic);
     console.log("Topic validation result:", JSON.stringify(validationResult));
-    
     if (!validationResult.isValid) {
       console.log(`Topic "${topic}" was rejected: ${validationResult.reason}`);
       const response = createInvalidTopicResponse(topic, validationResult.reason, validationResult.suggestedTopic);
@@ -53,17 +50,15 @@ serve(async (req) => {
         status: 400
       });
     }
-    
     console.log(`Validated topic "${topic}", generating story...`);
     try {
       const story = await generateStoryWithLLM(topic, userPreferences);
       console.log(`Generated story with title: "${story.title}" for topic: "${topic}"`);
-      
+      if (userPreferences) {
+        console.log("Generated story with personalization:", story.personalizedFor ? story.personalizedFor.join(", ") : "none");
+      }
       // Handle retry information in the response
-      let popupMessage = userPreferences 
-        ? `🎉 Your personalized story for "${topic}" is ready! Tailored just for you.`
-        : `🎉 Your story for "${topic}" is ready! Let's dive in.`;
-      
+      let popupMessage = userPreferences ? `🎉 Your personalized story for "${topic}" is ready! Tailored just for you.` : `🎉 Your story for "${topic}" is ready! Let's dive in.`;
       // If we had to retry or use a fallback model, add that information to the popup message
       if (story.retryCount && story.retryCount > 0) {
         if (story.retryCount >= 3) {
@@ -72,7 +67,6 @@ serve(async (req) => {
           popupMessage = `📝 Your story is ready, but may not cover "${topic}" perfectly. Feel free to try again if needed.`;
         }
       }
-      
       return new Response(JSON.stringify({
         ...story,
         popupMessage
