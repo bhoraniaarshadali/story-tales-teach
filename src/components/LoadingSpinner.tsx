@@ -1,10 +1,22 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
+import { getRandomLoadingMessage } from "../utils/loadingMessages";
 
 interface LoadingSpinnerProps {
   size?: "small" | "medium" | "large";
+  topic?: string;
+  isPersonalized?: boolean;
+  retryCount?: number;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = "medium" }) => {
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  size = "medium", 
+  topic, 
+  isPersonalized = false,
+  retryCount = 0 
+}) => {
+  const [message, setMessage] = useState<string>("");
+  
   // Determine size classes
   const sizeClasses = {
     small: "h-6 w-6",
@@ -12,8 +24,13 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = "medium" }) => {
     large: "h-16 w-16"
   };
 
+  // Set a random loading message when component mounts or topic changes
+  useEffect(() => {
+    setMessage(getRandomLoadingMessage());
+  }, [topic]);
+
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex flex-col items-center gap-4">
       <div className={`${sizeClasses[size]} animate-spin`}>
         <svg
           className="text-primary"
@@ -36,6 +53,19 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = "medium" }) => {
           ></path>
         </svg>
       </div>
+      
+      {topic && (
+        <div className="text-center">
+          <p className="text-muted-foreground animate-pulse">
+            {message}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground/80">
+            Topic: {topic}
+            {isPersonalized && <span className="ml-1">(personalized)</span>}
+            {retryCount > 0 && <span className="block text-sm mt-1">Attempt {retryCount + 1}...</span>}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

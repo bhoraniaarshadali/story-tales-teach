@@ -3,13 +3,20 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle, UserCircle } from "lucide-react";
+import { Heart, Book, Brain, Lightbulb, Share2, Facebook, Twitter, Send, MessageCircle, UserCircle, Link, Copy, Check } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
 import AudioNarration from "./AudioNarration";
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
+import { createShareableUrl, shareContent } from "../utils/shareUtils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface StoryDisplayProps {
   story: Story | null;
@@ -19,6 +26,7 @@ interface StoryDisplayProps {
 const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
   const { textSize } = useAccessibility();
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = React.useState(false);
 
   if (!story) return null;
 
@@ -70,6 +78,23 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
     toast.success('Image downloaded! Now share it on your favorite app.');
   };
 
+  // Share as link
+  const handleShareLink = async () => {
+    if (!story.id) return;
+    
+    const shareUrl = createShareableUrl(story.id);
+    const shareText = `Check out this learning story about ${story.topic}: ${story.title}`;
+    const success = await shareContent(story.title, shareText, shareUrl);
+    
+    if (success) {
+      toast.success('Link copied to clipboard!');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error('Failed to copy link. Please try again.');
+    }
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto mt-8">
       <Card ref={cardRef} className="p-6 shadow-lg border-primary/20 bg-card">
@@ -110,16 +135,34 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShareImage}
-              className="flex-shrink-0"
-              aria-label="Share story as image"
-              title="Share story as image"
-            >
-              <Share2 className="h-6 w-6 text-primary" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="flex-shrink-0"
+                  aria-label="Share story"
+                  title="Share story"
+                >
+                  <Share2 className="h-6 w-6 text-primary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleShareLink}>
+                  {copied ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Link className="h-4 w-4 mr-2" />
+                  )}
+                  Copy link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleShareImage}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Share as image
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             {onToggleFavorite && (
               <Button
                 variant="ghost"

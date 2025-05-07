@@ -1,6 +1,6 @@
 
 // index.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -11,6 +11,7 @@ import ErrorMessage from "../components/ErrorMessage";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import AnimatedCursor from "../components/AnimatedCursor";
 import { useStoryManager } from "../hooks/useStoryManager";
+import { getStoryIdFromUrl } from "../utils/shareUtils";
 
 // Re-export the Story type for backward compatibility
 export type { Story } from "../hooks/useStoryManager";
@@ -32,6 +33,15 @@ const Index = () => {
     setError,
     updateUserPreferences
   } = useStoryManager();
+
+  // Check for story ID in URL when component mounts
+  useEffect(() => {
+    const storyId = getStoryIdFromUrl();
+    if (storyId) {
+      console.log(`Loading shared story with ID: ${storyId}`);
+      viewHistoryStory(storyId);
+    }
+  }, [viewHistoryStory]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
@@ -57,11 +67,11 @@ const Index = () => {
 
           {isLoading && (
             <div className="mt-8">
-              <LoadingSpinner />
-              <p className="mt-2 text-center text-muted-foreground animate-pulse">
-                Generating your {userPreferences ? "personalized " : ""}story about {prevTopic}...
-                {retryCount > 0 && <span className="block text-sm mt-1">Attempt {retryCount + 1}...</span>}
-              </p>
+              <LoadingSpinner 
+                topic={prevTopic}
+                isPersonalized={!!userPreferences}
+                retryCount={retryCount}
+              />
             </div>
           )}
 
