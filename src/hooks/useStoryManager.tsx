@@ -24,15 +24,6 @@ export interface Story {
   qualityWarning?: boolean;
 }
 
-// Default user preferences
-const DEFAULT_USER_PREFERENCES: UserPreferences = {
-  readingLevel: "intermediate",
-  languagePreference: "hinglish",
-  learningStyle: "reading",
-  previousTopics: [],
-  favoriteTopics: []
-};
-
 export const useStoryManager = () => {
   const [story, setStory] = useState<Story | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,9 +44,6 @@ export const useStoryManager = () => {
     const savedPreferences = localStorage.getItem("userPreferences");
     if (savedPreferences) {
       setUserPreferences(JSON.parse(savedPreferences));
-    } else {
-      // Initialize with defaults if nothing is saved
-      setUserPreferences(DEFAULT_USER_PREFERENCES);
     }
   }, []);
 
@@ -74,26 +62,11 @@ export const useStoryManager = () => {
   // Update user preferences
   const updateUserPreferences = (newPreferences: UserPreferences) => {
     setUserPreferences(prev => ({
-      ...(prev || DEFAULT_USER_PREFERENCES),
+      ...(prev || {}),
       ...newPreferences
     }));
     
     toast.success("Your preferences have been updated!");
-  };
-
-  // Reset user preferences to defaults but keep history
-  const resetUserPreferences = () => {
-    const currentHistory = {
-      previousTopics: userPreferences?.previousTopics || [],
-      favoriteTopics: userPreferences?.favoriteTopics || []
-    };
-    
-    setUserPreferences({
-      ...DEFAULT_USER_PREFERENCES,
-      ...currentHistory
-    });
-    
-    toast.success("Preferences reset to defaults");
   };
 
   // Track user's previous topics
@@ -109,7 +82,7 @@ export const useStoryManager = () => {
     ].slice(0, 5);
     
     setUserPreferences(prev => ({
-      ...(prev || DEFAULT_USER_PREFERENCES),
+      ...(prev || {}),
       previousTopics: updatedTopics
     }));
   };
@@ -272,7 +245,6 @@ export const useStoryManager = () => {
     clearHistory,
     handleTryAgain,
     setError,
-    updateUserPreferences,
-    resetUserPreferences
+    updateUserPreferences
   };
 };

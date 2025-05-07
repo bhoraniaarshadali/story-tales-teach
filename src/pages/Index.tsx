@@ -30,8 +30,7 @@ const Index = () => {
     clearHistory,
     handleTryAgain,
     setError,
-    updateUserPreferences,
-    resetUserPreferences
+    updateUserPreferences
   } = useStoryManager();
 
   return (

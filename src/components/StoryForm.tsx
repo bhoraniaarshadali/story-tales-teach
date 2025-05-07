@@ -1,17 +1,16 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, Settings, UserCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { UserPreferences } from "../services/storyService";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useIsMobile } from "../hooks/use-mobile";
-import PersonalizationPanel from "./PersonalizationPanel";
 
 interface StoryFormProps {
   onSubmit: (topic: string, usePersonalization: boolean) => void;
@@ -42,7 +41,6 @@ const StoryForm: React.FC<StoryFormProps> = ({
     "Kubernetes",
     "Android Activity"
   ];
-  const isMobile = useIsMobile();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,85 +80,6 @@ const StoryForm: React.FC<StoryFormProps> = ({
     }
   };
 
-  const resetPreferences = () => {
-    if (onUpdatePreferences) {
-      onUpdatePreferences({
-        readingLevel: "intermediate",
-        languagePreference: "hinglish",
-        learningStyle: "reading",
-        previousTopics: userPreferences?.previousTopics || [],
-        favoriteTopics: userPreferences?.favoriteTopics || []
-      });
-    }
-  };
-
-  // Calculate personalization score for the indicator
-  const getPersonalizationScore = () => {
-    if (!userPreferences) return 0;
-    let score = 0;
-    if (userPreferences.readingLevel) score++;
-    if (userPreferences.languagePreference) score++;
-    if (userPreferences.learningStyle) score++;
-    if (userPreferences.previousTopics?.length) score++;
-    if (userPreferences.favoriteTopics?.length) score++;
-    return score;
-  };
-
-  // PersonalizationTrigger is a button with visual indicator of active personalization
-  const PersonalizationTrigger = () => (
-    <Button 
-      variant="outline" 
-      size="icon" 
-      title="Personalization Settings"
-      className={usePersonalization ? "relative" : ""}
-    >
-      <UserCircle className={`h-5 w-5 ${usePersonalization ? "text-primary" : ""}`} />
-      {usePersonalization && getPersonalizationScore() > 0 && (
-        <span className="absolute top-0 right-0 h-2.5 w-2.5 bg-primary rounded-full" />
-      )}
-    </Button>
-  );
-
-  // Determine which container to use based on device type
-  const PersonalizationContainer = () => {
-    const panelContent = (
-      <PersonalizationPanel
-        userPreferences={userPreferences || null}
-        usePersonalization={usePersonalization}
-        onTogglePersonalization={setUsePersonalization}
-        onUpdatePreferences={onUpdatePreferences || (() => {})}
-        onReset={resetPreferences}
-      />
-    );
-
-    if (isMobile) {
-      return (
-        <Drawer>
-          <DrawerTrigger asChild>
-            <PersonalizationTrigger />
-          </DrawerTrigger>
-          <DrawerContent className="max-h-[95vh] px-4 pb-8">
-            <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-            <div className="px-1 py-4">
-              {panelContent}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      );
-    }
-
-    return (
-      <Sheet>
-        <SheetTrigger asChild>
-          <PersonalizationTrigger />
-        </SheetTrigger>
-        <SheetContent className="overflow-y-auto w-[350px] sm:max-w-lg">
-          {panelContent}
-        </SheetContent>
-      </Sheet>
-    );
-  };
-
   return (
     <Card className="w-full max-w-md p-6 space-y-6 bg-card">
       <div className="flex items-start justify-between">
@@ -192,7 +111,107 @@ const StoryForm: React.FC<StoryFormProps> = ({
           </TooltipProvider>
           
           {/* Personalization Settings */}
-          <PersonalizationContainer />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" title="Personalization Settings">
+                <UserCircle className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Personalization Settings</h3>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="use-personalization" className="text-sm">Use personalization</Label>
+                    <Switch 
+                      id="use-personalization" 
+                      checked={usePersonalization}
+                      onCheckedChange={setUsePersonalization}
+                    />
+                  </div>
+                  
+                  {userPreferences?.previousTopics?.length ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Previous topics</Label>
+                      <div className="flex flex-wrap gap-1">
+                        {userPreferences.previousTopics.map((topic, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  
+                  {userPreferences?.favoriteTopics?.length ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Favorite topics</Label>
+                      <div className="flex flex-wrap gap-1">
+                        {userPreferences.favoriteTopics.map((topic, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="reading-level">Reading Level</Label>
+                  <Select 
+                    value={userPreferences?.readingLevel || 'intermediate'} 
+                    onValueChange={(value) => handlePreferenceChange('readingLevel', value)}
+                  >
+                    <SelectTrigger id="reading-level">
+                      <SelectValue placeholder="Select reading level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="language-preference">Language Style</Label>
+                  <Select 
+                    value={userPreferences?.languagePreference || 'hinglish'} 
+                    onValueChange={(value) => handlePreferenceChange('languagePreference', value)}
+                  >
+                    <SelectTrigger id="language-preference">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hinglish">Hinglish</SelectItem>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="hindi">Hindi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="learning-style">Learning Style</Label>
+                  <Select 
+                    value={userPreferences?.learningStyle || 'reading'} 
+                    onValueChange={(value) => handlePreferenceChange('learningStyle', value)}
+                  >
+                    <SelectTrigger id="learning-style">
+                      <SelectValue placeholder="Select learning style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visual">Visual</SelectItem>
+                      <SelectItem value="auditory">Auditory</SelectItem>
+                      <SelectItem value="reading">Reading/Writing</SelectItem>
+                      <SelectItem value="kinesthetic">Practical/Examples</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -260,25 +279,14 @@ const StoryForm: React.FC<StoryFormProps> = ({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="relative">
-          <Input
-            type="text"
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            placeholder="Enter any topic (e.g., 'Photosynthesis', 'Time management')"
-            className="w-full pr-24"
-            disabled={isLoading}
-          />
-          {usePersonalization && userPreferences && getPersonalizationScore() > 0 && (
-            <Badge 
-              variant="outline" 
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary/5 text-primary text-xs"
-            >
-              Personalized
-            </Badge>
-          )}
-        </div>
-        
+        <Input
+          type="text"
+          value={topic}
+          onChange={e => setTopic(e.target.value)}
+          placeholder="Enter any topic (e.g., 'Photosynthesis', 'Time management', 'Empathy')"
+          className="w-full"
+          disabled={isLoading}
+        />
         <Button
           type="submit"
           className="w-full"
@@ -292,7 +300,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              Generate {usePersonalization && userPreferences && getPersonalizationScore() > 0 ? "Personalized" : ""} Learning Story
+              Generate {usePersonalization && userPreferences ? "Personalized" : ""} Learning Story
             </>
           )}
         </Button>
