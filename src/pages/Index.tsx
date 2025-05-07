@@ -44,9 +44,9 @@ const Index = () => {
   }, [viewHistoryStory]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-12">
+    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-6 md:py-12">
       <AnimatedCursor />
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 max-w-full md:max-w-4xl lg:max-w-5xl">
         <PageHeader
           stories={storyHistory}
           onViewStory={viewHistoryStory}
