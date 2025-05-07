@@ -1,8 +1,6 @@
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { generateStory, UserPreferences } from "../services/storyService";
 import { toast } from "sonner";
-import { generateStoryWithLLM, AIProvider } from "../utils/llm-wrapper";
 
 export interface Story {
   title: string;
@@ -37,30 +35,21 @@ export const useStoryManager = () => {
 
   // Load story history from localStorage
   useEffect(() => {
-    try {
-      const savedStories = localStorage.getItem("storyHistory");
-      if (savedStories) {
-        setStoryHistory(JSON.parse(savedStories));
-      }
-      
-      // Load user preferences from localStorage
-      const savedPreferences = localStorage.getItem("userPreferences");
-      if (savedPreferences) {
-        setUserPreferences(JSON.parse(savedPreferences));
-      }
-    } catch (error) {
-      console.error("Error loading saved data:", error);
-      // If there's an error with the saved data, we'll initialize fresh
-      localStorage.removeItem("storyHistory");
-      localStorage.removeItem("userPreferences");
+    const savedStories = localStorage.getItem("storyHistory");
+    if (savedStories) {
+      setStoryHistory(JSON.parse(savedStories));
+    }
+    
+    // Load user preferences from localStorage
+    const savedPreferences = localStorage.getItem("userPreferences");
+    if (savedPreferences) {
+      setUserPreferences(JSON.parse(savedPreferences));
     }
   }, []);
 
   // Save story history to localStorage
   useEffect(() => {
-    if (storyHistory.length > 0) {
-      localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
-    }
+    localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
   }, [storyHistory]);
 
   // Save user preferences to localStorage
@@ -70,25 +59,18 @@ export const useStoryManager = () => {
     }
   }, [userPreferences]);
 
-  // Update user preferences with proper persistence
-  const updateUserPreferences = useCallback((newPreferences: UserPreferences) => {
-    setUserPreferences(prev => {
-      const updatedPreferences = {
-        ...(prev || {}),
-        ...newPreferences
-      };
-      
-      // Immediately save to localStorage to prevent loss on page refresh
-      localStorage.setItem("userPreferences", JSON.stringify(updatedPreferences));
-      
-      return updatedPreferences;
-    });
+  // Update user preferences
+  const updateUserPreferences = (newPreferences: UserPreferences) => {
+    setUserPreferences(prev => ({
+      ...(prev || {}),
+      ...newPreferences
+    }));
     
     toast.success("Your preferences have been updated!");
-  }, []);
+  };
 
   // Track user's previous topics
-  const updatePreviousTopics = useCallback((topic: string) => {
+  const updatePreviousTopics = (topic: string) => {
     if (!userPreferences) return;
     
     const previousTopics = userPreferences.previousTopics || [];
@@ -99,11 +81,11 @@ export const useStoryManager = () => {
       ...previousTopics.filter(t => t !== topic)
     ].slice(0, 5);
     
-    updateUserPreferences({
-      ...userPreferences,
+    setUserPreferences(prev => ({
+      ...(prev || {}),
       previousTopics: updatedTopics
-    });
-  }, [userPreferences, updateUserPreferences]);
+    }));
+  };
 
   const handleSubmitTopic = async (topic: string, usePersonalization = true) => {
     setIsLoading(true);
@@ -126,16 +108,7 @@ export const useStoryManager = () => {
         console.log("Sending preferences to API:", JSON.stringify(preferences));
       }
       
-      // Use our new LLM wrapper with fallback capabilities
-      const generatedStory = await generateStoryWithLLM(
-        topic, 
-        preferences, 
-        {
-          provider: AIProvider.DEFAULT,
-          fallbackProvider: AIProvider.MIXTRAL,
-          debugMode: true
-        }
-      );
+      const generatedStory = await generateStory(topic, preferences);
 
       // Verify that the story is actually about the requested topic
       if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase()) && generatedStory.title.toLowerCase().includes("Oops!")) {
@@ -224,7 +197,7 @@ export const useStoryManager = () => {
       const currentFavorites = userPreferences?.favoriteTopics || [];
       if (!currentFavorites.includes(story.topic)) {
         updateUserPreferences({
-          ...(userPreferences || {}),
+          ...userPreferences,
           favoriteTopics: [...currentFavorites, story.topic].slice(0, 10) // Keep only 10 favorites
         });
       }
