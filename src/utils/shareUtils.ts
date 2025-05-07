@@ -4,23 +4,13 @@
  */
 export const createShareableUrl = (storyId: string) => {
   const baseUrl = window.location.origin;
-  // Use a proper URL structure with a route segment for better SEO and clarity
-  return `${baseUrl}/share/${storyId}`;
+  return `${baseUrl}?story=${storyId}`;
 };
 
 /**
  * Extracts story ID from URL if present
  */
 export const getStoryIdFromUrl = (): string | null => {
-  const path = window.location.pathname;
-  
-  // Check for share route format
-  const shareMatch = path.match(/\/share\/([^\/]+)/);
-  if (shareMatch && shareMatch[1]) {
-    return shareMatch[1];
-  }
-  
-  // Fallback to query parameter for backward compatibility
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('story');
 };
