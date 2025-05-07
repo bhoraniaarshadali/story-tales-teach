@@ -1,6 +1,7 @@
 
 // index.tsx
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -17,6 +18,7 @@ import { getStoryIdFromUrl } from "../utils/shareUtils";
 export type { Story } from "../hooks/useStoryManager";
 
 const Index = () => {
+  const navigate = useNavigate();
   const {
     story,
     isLoading,
@@ -38,10 +40,22 @@ const Index = () => {
   useEffect(() => {
     const storyId = getStoryIdFromUrl();
     if (storyId) {
-      console.log(`Loading shared story with ID: ${storyId}`);
-      viewHistoryStory(storyId);
+      console.log(`Detected shared story ID: ${storyId}`);
+      
+      // Check if the story exists in history
+      const existsInHistory = storyHistory.some(s => s.id === storyId);
+      
+      if (existsInHistory) {
+        // If it exists locally, just view it
+        console.log("Story found in local history, displaying");
+        viewHistoryStory(storyId);
+      } else {
+        // If not in local history, redirect to the share page
+        console.log("Story not found in local history, redirecting to share page");
+        navigate(`/share/${storyId}`);
+      }
     }
-  }, [viewHistoryStory]);
+  }, [storyHistory, viewHistoryStory, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-6 md:py-12">
