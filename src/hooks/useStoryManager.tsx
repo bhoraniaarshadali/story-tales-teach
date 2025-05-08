@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { generateStory, UserPreferences, type StoryResponse } from "../services/storyService";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +58,7 @@ export const useStoryManager = () => {
             takeaway: dbStory.takeaway || "",
             id: dbStory.id,
             timestamp: dbStory.created_at,
-            topic: dbStory.topic || "",
+            topic: dbStory.topic || "", // Handle potential undefined topic
             isFavorite: false // Default value, could be updated from user preferences
           }));
           

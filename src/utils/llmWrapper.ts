@@ -83,6 +83,7 @@ export async function storeStoryInDatabase(story: {
     title: story.title,
     content: story.content,
     takeaway: story.takeaway,
+    topic: story.topic,
     is_public: story.is_public || false,
   });
 
@@ -123,29 +124,35 @@ export async function fetchStories({
  * Analyze stories to find popular topics
  */
 export async function analyzePopularTopics() {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('topic, created_at')
-    .order('created_at', { ascending: false })
-    .limit(100);
+  try {
+    const { data, error } = await supabase
+      .from('stories')
+      .select('topic, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-  if (error) {
-    console.error('Error analyzing topics:', error);
-    throw error;
-  }
-
-  // Count occurrences of each topic
-  const topicCounts: Record<string, number> = {};
-  data.forEach(story => {
-    if (story.topic) {
-      topicCounts[story.topic] = (topicCounts[story.topic] || 0) + 1;
+    if (error) {
+      console.error('Error analyzing topics:', error);
+      throw error;
     }
-  });
 
-  // Sort topics by count
-  const sortedTopics = Object.entries(topicCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([topic, count]) => ({ topic, count }));
+    // Count occurrences of each topic
+    const topicCounts: Record<string, number> = {};
+    data.forEach(story => {
+      if (story.topic) {
+        topicCounts[story.topic] = (topicCounts[story.topic] || 0) + 1;
+      }
+    });
 
-  return sortedTopics;
+    // Sort topics by count
+    const sortedTopics = Object.entries(topicCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([topic, count]) => ({ topic, count }));
+
+    return sortedTopics;
+  } catch (error) {
+    console.error('Error in analyzePopularTopics:', error);
+    // Return empty array as fallback
+    return [];
+  }
 }

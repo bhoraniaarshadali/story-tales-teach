@@ -41,6 +41,7 @@ export type Database = {
           is_public: boolean | null
           takeaway: string | null
           title: string
+          topic: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -51,6 +52,7 @@ export type Database = {
           is_public?: boolean | null
           takeaway?: string | null
           title: string
+          topic?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -61,6 +63,7 @@ export type Database = {
           is_public?: boolean | null
           takeaway?: string | null
           title?: string
+          topic?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

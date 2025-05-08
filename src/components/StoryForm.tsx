@@ -1,4 +1,7 @@
 
+// The Switch component doesn't accept a 'size' prop
+// Need to fix line around 168
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,9 +47,15 @@ const StoryForm: React.FC<StoryFormProps> = ({
   const [topic, setTopic] = useState("");
   const [isPersonalizationEnabled, setIsPersonalizationEnabled] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [language, setLanguage] = useState(userPreferences?.languagePreference || "english");
-  const [readingLevel, setReadingLevel] = useState(userPreferences?.readingLevel || "intermediate");
-  const [ageGroup, setAgeGroup] = useState(userPreferences?.ageGroup || "adult");
+  const [language, setLanguage] = useState<"english" | "hinglish" | "hindi">(
+    userPreferences?.languagePreference || "english"
+  );
+  const [readingLevel, setReadingLevel] = useState<"beginner" | "intermediate" | "advanced">(
+    userPreferences?.readingLevel || "intermediate"
+  );
+  const [ageGroup, setAgeGroup] = useState<"kids" | "teen" | "adult">(
+    userPreferences?.ageGroup || "adult"
+  );
   const [interests, setInterests] = useState<string>(userPreferences?.interests?.join(", ") || "");
 
   // Load settings from user preferences
@@ -75,9 +84,9 @@ const StoryForm: React.FC<StoryFormProps> = ({
   const handleSaveSettings = () => {
     const updatedPreferences: UserPreferences = {
       ...userPreferences,
-      languagePreference: language as "english" | "hinglish" | "hindi",
-      readingLevel: readingLevel as "beginner" | "intermediate" | "advanced",
-      ageGroup: ageGroup as "kids" | "teen" | "adult",
+      languagePreference: language,
+      readingLevel: readingLevel,
+      ageGroup: ageGroup,
       interests: interests.split(",").map(i => i.trim()).filter(i => i.length > 0),
     };
     
@@ -165,7 +174,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
               <Switch
                 checked={isPersonalizationEnabled}
                 onCheckedChange={setIsPersonalizationEnabled}
-                size="sm"
+                className="h-[20px] w-[36px]" /* Removed size prop and used className to style */
               />
               <span className="ml-2 text-xs text-muted-foreground">
                 Personalize
@@ -219,7 +228,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                       <Label htmlFor="language">Language Style</Label>
                       <Select
                         value={language}
-                        onValueChange={setLanguage}
+                        onValueChange={(value: "english" | "hinglish" | "hindi") => setLanguage(value)}
                       >
                         <SelectTrigger id="language">
                           <SelectValue placeholder="Select language" />
@@ -236,7 +245,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                       <Label htmlFor="reading-level">Reading Level</Label>
                       <Select
                         value={readingLevel}
-                        onValueChange={setReadingLevel}
+                        onValueChange={(value: "beginner" | "intermediate" | "advanced") => setReadingLevel(value)}
                       >
                         <SelectTrigger id="reading-level">
                           <SelectValue placeholder="Select reading level" />
@@ -253,7 +262,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                       <Label htmlFor="age-group">Age Group</Label>
                       <Select
                         value={ageGroup}
-                        onValueChange={setAgeGroup}
+                        onValueChange={(value: "kids" | "teen" | "adult") => setAgeGroup(value)}
                       >
                         <SelectTrigger id="age-group">
                           <SelectValue placeholder="Select age group" />
