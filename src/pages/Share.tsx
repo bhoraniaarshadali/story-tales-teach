@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getStoryIdFromUrl } from "../utils/shareUtils";
@@ -213,9 +214,7 @@ const Share = () => {
       </Helmet>
 
       <AnimatedCursor />
-      {showConfetti && (
-        <SuccessConfetti />
-      )}
+      {showConfetti && <SuccessConfetti />}
 
       <PageTransition>
         <div className="container mx-auto px-4 py-8 max-w-full md:max-w-4xl lg:max-w-5xl">
@@ -292,64 +291,65 @@ const Share = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-              <h2 className="text-2xl md:text-3xl font-bold text-primary mb-2">
-                {sharedStory.title}
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                You're viewing a shared story. Create your own personalized stories by heading back to the home page!
-              </p>
-              <div className="flex justify-center mt-4">
-                <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12.01" y2="15" />
-                  </svg>
-                  <span>Shared with you</span>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="bg-background rounded-xl shadow-lg border border-accent/20 p-6 md:p-8"
-            >
-              <StoryDisplay story={sharedStory} />
-            </motion.div>
-
-            <motion.div
-              className="mt-8 flex justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.5 }}
-            >
-              <div className="flex flex-col md:flex-row gap-4 items-center">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    className="bg-primary text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2"
-                    onClick={handleReturnHome}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                <h2 className="text-2xl md:text-3xl font-bold text-primary mb-2">
+                  {sharedStory.title}
+                </h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  You're viewing a shared story. Create your own personalized stories by heading back to the home page!
+                </p>
+                <div className="flex justify-center mt-4">
+                  <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                      <polyline points="9 22 9 12 15 12 15 22" />
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12.01" y2="15" />
                     </svg>
-                    <span>Create Your Own Story</span>
-                  </Button>
-                </motion.div>
-              </div>
-            </motion.div>
-          </div>
-        )}
+                    <span>Shared with you</span>
+                  </div>
+                </div>
+              </motion.div>
 
-        <footer className="mt-16 py-6 bg-background/80 backdrop-blur-sm border-t border-accent/10">
-          <div className="container mx-auto px-4 text-center text-muted-foreground">
-            <p>©2025 Story Tales Teach - Inspiring young minds with personalized tales</p>
-          </div>
-        </footer>
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.3 }}
+                className="bg-background rounded-xl shadow-lg border border-accent/20 p-6 md:p-8"
+              >
+                <StoryDisplay story={sharedStory} />
+              </motion.div>
+
+              <motion.div
+                className="mt-8 flex justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1, duration: 0.5 }}
+              >
+                <div className="flex flex-col md:flex-row gap-4 items-center">
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      className="bg-primary text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2"
+                      onClick={handleReturnHome}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                      </svg>
+                      <span>Create Your Own Story</span>
+                    </Button>
+                  </motion.div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          <footer className="mt-16 py-6 bg-background/80 backdrop-blur-sm border-t border-accent/10">
+            <div className="container mx-auto px-4 text-center text-muted-foreground">
+              <p>©2025 Story Tales Teach - Inspiring young minds with personalized tales</p>
+            </div>
+          </footer>
+        </div>
       </PageTransition>
     </div>
   );
