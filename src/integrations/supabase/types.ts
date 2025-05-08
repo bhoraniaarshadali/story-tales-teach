@@ -37,8 +37,10 @@ export type Database = {
         Row: {
           content: string
           created_at: string | null
+          dislikes: number | null
           id: string
           is_public: boolean | null
+          likes: number | null
           takeaway: string | null
           title: string
           topic: string | null
@@ -48,8 +50,10 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string | null
+          dislikes?: number | null
           id?: string
           is_public?: boolean | null
+          likes?: number | null
           takeaway?: string | null
           title: string
           topic?: string | null
@@ -59,8 +63,10 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string | null
+          dislikes?: number | null
           id?: string
           is_public?: boolean | null
+          likes?: number | null
           takeaway?: string | null
           title?: string
           topic?: string | null
