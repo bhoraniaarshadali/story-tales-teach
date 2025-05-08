@@ -165,8 +165,8 @@ const Share = () => {
             takeaway: dbStory.takeaway || "",
             topic: dbStory.topic || "",
             timestamp: dbStory.created_at,
-            likes: dbStory.likes || 0,
-            dislikes: dbStory.dislikes || 0
+            likes: dbStory.likes ?? 0,
+            dislikes: dbStory.dislikes ?? 0
           };
 
           console.log("Found story in database:", storyData.title);

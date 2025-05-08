@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type Story } from "@/hooks/useStoryManager";
@@ -65,8 +66,8 @@ export const updateStoryFeedback = async (
     }
 
     // Calculate the new feedback counts
-    let likes = story?.likes || 0;
-    let dislikes = story?.dislikes || 0;
+    let likes = story?.likes ?? 0;
+    let dislikes = story?.dislikes ?? 0;
 
     if (feedbackType === "like") {
       likes = action === "add" ? likes + 1 : Math.max(0, likes - 1);
@@ -130,8 +131,8 @@ export const getStoryFeedback = async (storyId: string): Promise<FeedbackStats |
     const userInteraction = localStorage.getItem(storageKey) as FeedbackType | null;
 
     return {
-      likes: story?.likes || 0,
-      dislikes: story?.dislikes || 0,
+      likes: story?.likes ?? 0,
+      dislikes: story?.dislikes ?? 0,
       userInteraction
     };
   } catch (error) {
