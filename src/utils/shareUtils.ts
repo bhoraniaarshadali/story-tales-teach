@@ -12,12 +12,8 @@ export const createShareableUrl = (storyId: string): string => {
   // Create a URL with the story ID as a query parameter
   const baseUrl = window.location.origin;
 
-  // Make sure we don't append extra query parameters if they exist
-  const path = window.location.pathname.split('?')[0];
-  const cleanPath = path.endsWith('/') ? path : path + '/';
-
-  // Format: https://domain.com/?story=abc123
-  return `${baseUrl}${cleanPath}?story=${storyId}`;
+  // Format: https://domain.com/share/story-id
+  return `${baseUrl}/share/${storyId}`;
 };
 
 /**
@@ -176,4 +172,36 @@ export const formatSocialShareText = (
   return topic
     ? `Check out this amazing story about ${topic}: "${title}"`
     : `Check out this amazing story: "${title}"`;
+};
+
+/**
+ * Generate social sharing meta tags for a story
+ * This function returns the meta tags for Open Graph and Twitter cards
+ * 
+ * @param story The story object
+ * @returns HTML string with meta tags
+ */
+export const generateSocialMetaTags = (story: {
+  title: string;
+  content: string;
+  takeaway?: string;
+  id?: string;
+}): string => {
+  const description = story.takeaway || story.content.substring(0, 150) + '...';
+  const imageUrl = `https://source.unsplash.com/random/1200x630/?story,${encodeURIComponent(story.title.split(' ')[0])}`;
+  
+  return `
+    <!-- Open Graph meta tags -->
+    <meta property="og:title" content="${story.title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:image" content="${imageUrl}" />
+    <meta property="og:url" content="${story.id ? createShareableUrl(story.id) : window.location.href}" />
+    <meta property="og:type" content="article" />
+
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${story.title}" />
+    <meta name="twitter:description" content="${description}" />
+    <meta name="twitter:image" content="${imageUrl}" />
+  `;
 };

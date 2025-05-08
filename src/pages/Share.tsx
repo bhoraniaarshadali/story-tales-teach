@@ -7,7 +7,11 @@ import ErrorMessage from "../components/ErrorMessage";
 import AnimatedCursor from "../components/AnimatedCursor";
 import { useStoryManager } from "../hooks/useStoryManager";
 import { type Story } from "../hooks/useStoryManager";
-import { motion } from "framer-motion"; // Added for animations
+import { motion } from "framer-motion"; 
+import { Helmet } from "react-helmet";
+import { generateSocialMetaTags } from "../utils/shareUtils";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 // New components for enhanced UI
 const PageTransition = ({ children }) => (
@@ -100,10 +104,11 @@ const Share = () => {
   const { storyId } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [sharedStory, setSharedStory] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sharedStory, setSharedStory] = useState<Story | null>(null);
   const { storyHistory } = useStoryManager();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [metaTags, setMetaTags] = useState("");
 
   useEffect(() => {
     const loadSharedStory = async () => {
@@ -128,13 +133,52 @@ const Share = () => {
         if (localStory) {
           console.log("Found story in local history:", localStory.title);
           setSharedStory(localStory);
+          // Generate meta tags for social sharing
+          const tags = generateSocialMetaTags(localStory);
+          setMetaTags(tags);
           setShowConfetti(true);
           setIsLoading(false);
           return;
         }
 
-        // If story isn't found locally, show an error
-        // In a production app, you might fetch it from a database instead
+        // If not found locally, try to fetch from the database
+        const { data: dbStory, error: fetchError } = await supabase
+          .from("stories")
+          .select("*")
+          .eq("id", resolvedStoryId)
+          .single();
+
+        if (fetchError) {
+          console.error("Error fetching story from database:", fetchError);
+          setError("Story not found. It may have been deleted or is not available.");
+          setIsLoading(false);
+          return;
+        }
+
+        if (dbStory) {
+          // Convert the database story to the format expected by the app
+          const storyData: Story = {
+            id: dbStory.id,
+            title: dbStory.title,
+            content: dbStory.content,
+            takeaway: dbStory.takeaway || "",
+            topic: dbStory.topic || "",
+            timestamp: dbStory.created_at,
+            likes: dbStory.likes || 0,
+            dislikes: dbStory.dislikes || 0
+          };
+
+          console.log("Found story in database:", storyData.title);
+          setSharedStory(storyData);
+          // Generate meta tags for social sharing
+          const tags = generateSocialMetaTags(storyData);
+          setMetaTags(tags);
+          setShowConfetti(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // If story isn't found anywhere
         setError("Story not found. It may have been deleted or is not available on this device.");
 
       } catch (error) {
@@ -161,8 +205,17 @@ const Share = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-accent/30 via-background to-primary/5 overflow-hidden">
+      {/* Add meta tags for social sharing */}
+      <Helmet>
+        <title>{sharedStory?.title || "Shared Story"} | Story Tales Teach</title>
+        <meta name="description" content={sharedStory?.takeaway || "Read this amazing shared story!"} />
+        <div dangerouslySetInnerHTML={{ __html: metaTags }} />
+      </Helmet>
+
       <AnimatedCursor />
-      {showConfetti && <SuccessConfetti />}
+      {showConfetti && (
+        <SuccessConfetti />
+      )}
 
       <PageTransition>
         <div className="container mx-auto px-4 py-8 max-w-full md:max-w-4xl lg:max-w-5xl">
@@ -191,7 +244,7 @@ const Share = () => {
             <StoryLoadingState topic="shared story" isPersonalized={false} retryCount={0} />
           )}
 
-          {error && (
+          {error && !isLoading && (
             <motion.div
               className="rounded-xl bg-background shadow-lg border border-destructive/20 p-8 my-12"
               initial={{ opacity: 0, y: 20 }}
@@ -239,44 +292,43 @@ const Share = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h2 className="text-2xl md:text-3xl font-bold text-primary mb-2">
-                  {sharedStory.title}
-                </h2>
-                <p className="text-muted-foreground max-w-2xl mx-auto">
-                  You're viewing a shared story. Create your own personalized stories by heading back to the home page!
-                </p>
-                <div className="flex justify-center mt-4">
-                  <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12.01" y2="15" />
-                    </svg>
-                    <span>Shared with you</span>
-                  </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-primary mb-2">
+                {sharedStory.title}
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                You're viewing a shared story. Create your own personalized stories by heading back to the home page!
+              </p>
+              <div className="flex justify-center mt-4">
+                <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12.01" y2="15" />
+                  </svg>
+                  <span>Shared with you</span>
                 </div>
-              </motion.div>
+              </div>
+            </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-                className="bg-background rounded-xl shadow-lg border border-accent/20 p-6 md:p-8"
-              >
-                <StoryDisplay story={sharedStory} />
-              </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="bg-background rounded-xl shadow-lg border border-accent/20 p-6 md:p-8"
+            >
+              <StoryDisplay story={sharedStory} />
+            </motion.div>
 
-              <motion.div
-                className="mt-8 flex justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1, duration: 0.5 }}
-              >
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+            <motion.div
+              className="mt-8 flex justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1, duration: 0.5 }}
+            >
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
                     className="bg-primary text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2"
                     onClick={handleReturnHome}
                   >
@@ -286,26 +338,12 @@ const Share = () => {
                       <polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
                     <span>Create Your Own Story</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 px-6 py-3 rounded-lg font-medium flex items-center space-x-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                      <polyline points="16 6 12 2 8 6" />
-                      <line x1="12" y1="2" x2="12" y2="15" />
-                    </svg>
-                    <span>Share this Story</span>
-                  </motion.button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </div>
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         <footer className="mt-16 py-6 bg-background/80 backdrop-blur-sm border-t border-accent/10">
           <div className="container mx-auto px-4 text-center text-muted-foreground">

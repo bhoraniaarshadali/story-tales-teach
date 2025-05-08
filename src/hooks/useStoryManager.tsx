@@ -24,6 +24,8 @@ export interface Story {
   retryCount?: number;
   usedFallbackModel?: boolean;
   qualityWarning?: boolean;
+  likes?: number;
+  dislikes?: number;
 }
 
 export const useStoryManager = () => {
@@ -281,6 +283,7 @@ export const useStoryManager = () => {
     }
   };
 
+  // Toggle favorite status of a story
   const toggleFavorite = (storyId: string) => {
     let isNowFavorite = false;
     if (story && story.id === storyId) {
@@ -289,6 +292,16 @@ export const useStoryManager = () => {
         ...story,
         isFavorite: isNowFavorite
       });
+      
+      // Show favorite animation when adding to favorites
+      if (isNowFavorite) {
+        // Heart animation effect could be added here
+        toast.success("Added to favorites!", {
+          icon: "❤️"
+        });
+      } else {
+        toast.success("Removed from favorites");
+      }
     } else {
       const found = storyHistory.find(item => item.id === storyId);
       if (found) {
@@ -313,12 +326,6 @@ export const useStoryManager = () => {
           favoriteTopics: [...currentFavorites, story.topic].slice(0, 10) // Keep only 10 favorites
         });
       }
-    }
-
-    if (isNowFavorite) {
-      toast.success("Story added to favorites!");
-    } else {
-      toast.success("Story removed from favorites!");
     }
   };
 

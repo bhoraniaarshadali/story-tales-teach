@@ -6,6 +6,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { 
+  Heart, 
+  Share2, 
+  ThumbsUp, 
+  ThumbsDown, 
+  Edit, 
+  Save, 
+  X
+} from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { createShareableUrl, shareContent } from "@/utils/shareUtils";
+import { updateStoryFeedback, getStoryFeedback, handleFeedbackOptimistic } from "@/utils/feedbackUtils";
 
 interface StoryDisplayProps {
   story: Story;
@@ -23,6 +42,10 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(story.content);
   const [readingProgress, setReadingProgress] = useState(0);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [userFeedback, setUserFeedback] = useState<"like" | "dislike" | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const storyContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,6 +73,22 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
     };
   }, []);
 
+  // Load story feedback when the component mounts
+  useEffect(() => {
+    const loadFeedback = async () => {
+      if (story.id) {
+        const feedbackStats = await getStoryFeedback(story.id);
+        if (feedbackStats) {
+          setLikes(feedbackStats.likes);
+          setDislikes(feedbackStats.dislikes);
+          setUserFeedback(feedbackStats.userInteraction || null);
+        }
+      }
+    };
+    
+    loadFeedback();
+  }, [story.id]);
+
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditableContent(e.target.value);
   };
@@ -68,6 +107,63 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
   const handleCancelClick = () => {
     setEditableContent(story.content);
     setIsEditing(false);
+  };
+
+  const handleShare = async () => {
+    if (!story.id) return;
+    
+    setIsSharing(true);
+    try {
+      const shareUrl = createShareableUrl(story.id);
+      const shareText = `Check out this amazing story: "${story.title}"`;
+      
+      const success = await shareContent(
+        story.title,
+        shareText,
+        shareUrl
+      );
+      
+      if (success) {
+        toast.success("Story link copied to clipboard!");
+      } else {
+        toast.error("Failed to share story. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error sharing story:", error);
+      toast.error("Failed to share story. Please try again.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleFeedback = async (type: "like" | "dislike") => {
+    if (!story.id) return;
+
+    // Optimistic UI update
+    const newFeedbackState = handleFeedbackOptimistic(story.id, type, userFeedback);
+    const prevFeedbackState = userFeedback;
+    
+    // Update local state for immediate feedback
+    if (type === "like") {
+      setLikes(prev => newFeedbackState === "like" ? prev + 1 : prev - 1);
+      if (prevFeedbackState === "dislike") setDislikes(prev => prev - 1);
+    } else {
+      setDislikes(prev => newFeedbackState === "dislike" ? prev + 1 : prev - 1);
+      if (prevFeedbackState === "like") setLikes(prev => prev - 1);
+    }
+    setUserFeedback(newFeedbackState);
+    
+    // Update in the backend
+    const action = newFeedbackState === type ? "add" : "remove";
+    const result = await updateStoryFeedback(story.id, type, action);
+    
+    if (!result) {
+      // Revert optimistic update if backend update fails
+      setUserFeedback(prevFeedbackState);
+      setLikes(result?.likes || likes);
+      setDislikes(result?.dislikes || dislikes);
+      toast.error("Failed to update feedback. Please try again.");
+    }
   };
 
   return (
@@ -143,33 +239,139 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
           </div>
         )}
 
-        {isEditable && (
-          <div className="mt-6 flex justify-end space-x-2">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSaveClick}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={handleCancelClick}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleEditClick}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Edit
-              </button>
-            )}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                      "hover:bg-primary/10",
+                      userFeedback === "like" && "text-green-600 bg-green-100 dark:bg-green-900/20"
+                    )}
+                    onClick={() => handleFeedback("like")}
+                  >
+                    <ThumbsUp className={cn(
+                      userFeedback === "like" ? "fill-current" : ""
+                    )} />
+                    {likes > 0 && <span className="ml-1 text-xs">{likes}</span>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Like this story</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      "hover:bg-primary/10",
+                      userFeedback === "dislike" && "text-red-600 bg-red-100 dark:bg-red-900/20"
+                    )}
+                    onClick={() => handleFeedback("dislike")}
+                  >
+                    <ThumbsDown className={cn(
+                      userFeedback === "dislike" ? "fill-current" : ""
+                    )} />
+                    {dislikes > 0 && <span className="ml-1 text-xs">{dislikes}</span>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Dislike this story</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      "hover:bg-primary/10",
+                      story.isFavorite && "text-red-600"
+                    )}
+                    onClick={onToggleFavorite}
+                    disabled={!onToggleFavorite}
+                  >
+                    <motion.div
+                      whileTap={story.isFavorite ? { scale: 0.8 } : { scale: 1.2 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                    >
+                      <Heart className={cn(
+                        story.isFavorite ? "fill-red-600 stroke-red-600" : ""
+                      )} />
+                    </motion.div>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{story.isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="hover:bg-primary/10"
+                    onClick={handleShare}
+                    disabled={isSharing || !story.id}
+                  >
+                    <Share2 className={isSharing ? "animate-pulse" : ""} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Share this story</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-        )}
+
+          {isEditable && (
+            <div className="flex justify-end space-x-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    onClick={handleSaveClick}
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <Save size={16} /> Save
+                  </Button>
+                  <Button
+                    onClick={handleCancelClick}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <X size={16} /> Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={handleEditClick}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  <Edit size={16} /> Edit
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
