@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Story } from "@/hooks/useStoryManager";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +11,15 @@ interface StoryDisplayProps {
   story: Story;
   isEditable?: boolean;
   onEdit?: (newContent: string) => void;
+  onToggleFavorite?: () => void;
 }
 
-const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, isEditable = false, onEdit }) => {
+const StoryDisplay: React.FC<StoryDisplayProps> = ({ 
+  story, 
+  isEditable = false, 
+  onEdit,
+  onToggleFavorite 
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(story.content);
   const [readingProgress, setReadingProgress] = useState(0);
@@ -118,7 +125,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, isEditable = false, 
           </div>
         )}
 
-        <Progress value={readingProgress} className="mt-2 bg-primary" />
+        <Progress value={readingProgress} className="mt-2" />
 
         <div className="mt-4">
           <strong>Key Takeaway:</strong>
