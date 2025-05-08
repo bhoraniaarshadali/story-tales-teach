@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import StoryForm from "../components/StoryForm";
@@ -10,8 +11,9 @@ import ErrorMessage from "../components/ErrorMessage";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import AnimatedCursor from "../components/AnimatedCursor";
 import { useStoryManager } from "../hooks/useStoryManager";
-import { getStoryIdFromUrl } from "../utils/shareUtils";
+import { getStoryIdFromUrl, getSourceDomain } from "../utils/shareUtils";
 import { toast } from "sonner";
+import { analyzePopularTopics } from "../utils/llmWrapper";
 
 // Re-export the Story type for backward compatibility
 export type { Story } from "../hooks/useStoryManager";
@@ -20,6 +22,7 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [popularTopics, setPopularTopics] = useState<{topic: string, count: number}[]>([]);
 
   const {
     story,
@@ -38,13 +41,35 @@ const Index = () => {
     updateUserPreferences
   } = useStoryManager();
 
-  // Check for story ID in URL when component mounts
+  // Load popular topics on component mount
+  useEffect(() => {
+    const loadPopularTopics = async () => {
+      try {
+        const topics = await analyzePopularTopics();
+        setPopularTopics(topics);
+        console.log("Popular topics loaded:", topics);
+      } catch (error) {
+        console.error("Error loading popular topics:", error);
+      }
+    };
+    
+    loadPopularTopics();
+  }, []);
+
+  // Check for story ID in URL and source domain when component mounts
   useEffect(() => {
     const checkForSharedStory = async () => {
       try {
         const storyId = getStoryIdFromUrl();
         if (storyId) {
           console.log(`Detected shared story ID: ${storyId}`);
+          
+          // Track the source domain for analytics
+          const sourceDomain = getSourceDomain();
+          if (sourceDomain) {
+            console.log(`Story was shared from: ${sourceDomain}`);
+            // You could record this in analytics here
+          }
 
           // Check if the story exists in history
           const existsInHistory = storyHistory.some(s => s.id === storyId);
@@ -114,6 +139,7 @@ const Index = () => {
             userPreferences={userPreferences}
             onUpdatePreferences={updateUserPreferences}
             retryCount={retryCount}
+            popularTopics={popularTopics}
           />
           {isLoading && (
             <div className="mt-8">

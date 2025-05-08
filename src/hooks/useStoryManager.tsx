@@ -1,5 +1,8 @@
+
 import { useState, useEffect } from "react";
-import { generateStory, UserPreferences } from "../services/storyService";
+import { generateStory, UserPreferences, type StoryResponse } from "../services/storyService";
+import { supabase } from "@/integrations/supabase/client";
+import { storeStoryInDatabase, fetchStories } from "../utils/llmWrapper";
 import { toast } from "sonner";
 
 export interface Story {
@@ -32,25 +35,92 @@ export const useStoryManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [isDatabaseSynced, setIsDatabaseSynced] = useState<boolean>(false);
 
-  // Load story history from localStorage
+  // Load story history from localStorage and database
   useEffect(() => {
-    const savedStories = localStorage.getItem("storyHistory");
-    if (savedStories) {
-      setStoryHistory(JSON.parse(savedStories));
-    }
+    const loadStoriesFromLocalStorage = () => {
+      const savedStories = localStorage.getItem("storyHistory");
+      if (savedStories) {
+        setStoryHistory(JSON.parse(savedStories));
+      }
+    };
+
+    const loadStoriesFromDatabase = async () => {
+      try {
+        // Fetch stories from the database
+        const data = await fetchStories({ limit: 50, isPublic: false });
+        
+        if (data && data.length > 0) {
+          // Convert database stories to the format expected by the app
+          const dbStories = data.map(dbStory => ({
+            title: dbStory.title,
+            content: dbStory.content,
+            takeaway: dbStory.takeaway || "",
+            id: dbStory.id,
+            timestamp: dbStory.created_at,
+            topic: dbStory.topic || "",
+            isFavorite: false // Default value, could be updated from user preferences
+          }));
+          
+          // Merge with any local stories, avoiding duplicates
+          const localStories = JSON.parse(localStorage.getItem("storyHistory") || "[]");
+          const mergedStories = mergeStories(localStories, dbStories);
+          
+          setStoryHistory(mergedStories);
+          localStorage.setItem("storyHistory", JSON.stringify(mergedStories));
+          console.log(`Loaded ${dbStories.length} stories from database and merged with local stories`);
+          setIsDatabaseSynced(true);
+        }
+      } catch (error) {
+        console.error('Error loading stories from database:', error);
+        // Fall back to local storage only
+        loadStoriesFromLocalStorage();
+      }
+    };
     
     // Load user preferences from localStorage
-    const savedPreferences = localStorage.getItem("userPreferences");
-    if (savedPreferences) {
-      setUserPreferences(JSON.parse(savedPreferences));
-    }
+    const loadUserPreferences = () => {
+      const savedPreferences = localStorage.getItem("userPreferences");
+      if (savedPreferences) {
+        setUserPreferences(JSON.parse(savedPreferences));
+      }
+    };
+    
+    loadUserPreferences();
+    loadStoriesFromDatabase();
   }, []);
 
   // Save story history to localStorage
   useEffect(() => {
-    localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
-  }, [storyHistory]);
+    if (storyHistory.length > 0) {
+      localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
+      
+      // Sync to database if we have new stories that aren't already saved
+      if (isDatabaseSynced) {
+        storyHistory.forEach(async (story) => {
+          if (story.id && !story.id.includes('local-')) {
+            // Skip stories already in database (those with real UUIDs)
+            return;
+          }
+          
+          try {
+            // Save to database
+            await storeStoryInDatabase({
+              title: story.title,
+              content: story.content,
+              takeaway: story.takeaway,
+              topic: story.topic || "",
+              is_public: false
+            });
+          } catch (error) {
+            console.error('Error syncing story to database:', error);
+            // Continue with other stories even if one fails
+          }
+        });
+      }
+    }
+  }, [storyHistory, isDatabaseSynced]);
 
   // Save user preferences to localStorage
   useEffect(() => {
@@ -58,6 +128,34 @@ export const useStoryManager = () => {
       localStorage.setItem("userPreferences", JSON.stringify(userPreferences));
     }
   }, [userPreferences]);
+
+  // Helper to merge stories from different sources avoiding duplicates
+  const mergeStories = (localStories: Story[], dbStories: Story[]): Story[] => {
+    // Create a map of existing stories by title to avoid duplicates
+    const titleMap = new Map<string, Story>();
+    
+    // Add local stories first
+    localStories.forEach(story => {
+      if (story.title) {
+        titleMap.set(story.title, story);
+      }
+    });
+    
+    // Add database stories, overwriting local ones if they exist
+    dbStories.forEach(story => {
+      if (story.title) {
+        titleMap.set(story.title, story);
+      }
+    });
+    
+    // Convert the map back to an array and sort by timestamp descending
+    return Array.from(titleMap.values())
+      .sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateB - dateA;
+      });
+  };
 
   // Update user preferences
   const updateUserPreferences = (newPreferences: UserPreferences) => {
@@ -122,7 +220,7 @@ export const useStoryManager = () => {
       // Ensure the topic is saved in the story
       const storyWithMeta: Story = {
         ...generatedStory,
-        id: Date.now().toString(),
+        id: `local-${Date.now().toString()}`, // Local ID that will be replaced by DB ID on sync
         timestamp: new Date().toISOString(),
         topic: topic, // Make sure we set the topic explicitly here
         isFavorite: false
@@ -130,6 +228,21 @@ export const useStoryManager = () => {
 
       console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
       console.log(`Personalization applied:`, storyWithMeta.personalizedFor || "none");
+      
+      // Store the story in our database
+      try {
+        await storeStoryInDatabase({
+          title: storyWithMeta.title,
+          content: storyWithMeta.content,
+          takeaway: storyWithMeta.takeaway,
+          topic: topic,
+          is_public: false
+        });
+        console.log('Story saved to database successfully');
+      } catch (dbError) {
+        console.error('Failed to store story in database:', dbError);
+        // Continue anyway - we'll retry syncing later
+      }
       
       // Update previous topics if personalization is enabled
       if (usePersonalization) {

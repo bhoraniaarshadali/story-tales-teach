@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for sharing stories across platforms
  */
@@ -20,6 +21,26 @@ export const createShareableUrl = (storyId: string): string => {
 };
 
 /**
+ * Creates a shareable URL with the domain included for tracking purposes
+ * @param storyId The unique ID of the story
+ * @param includeSource Whether to include the source domain for analytics
+ * @returns A full URL string for sharing
+ */
+export const createTrackableShareUrl = (storyId: string, includeSource: boolean = true): string => {
+  // Base URL with story ID
+  const baseUrl = createShareableUrl(storyId);
+  
+  if (!includeSource) return baseUrl;
+  
+  // Extract current domain for tracking
+  const currentDomain = window.location.hostname;
+  
+  // Add source parameter for analytics
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}source=${encodeURIComponent(currentDomain)}`;
+};
+
+/**
  * Extracts a story ID from the current URL if present
  * @returns The story ID from the URL or null if not found
  */
@@ -29,6 +50,11 @@ export const getStoryIdFromUrl = (): string | null => {
   const storyId = urlParams.get('story');
 
   if (storyId) {
+    // Log domain information for analytics
+    const sourceDomain = urlParams.get('source');
+    if (sourceDomain) {
+      console.log(`Story shared from domain: ${sourceDomain}`);
+    }
     return storyId;
   }
 
@@ -38,6 +64,23 @@ export const getStoryIdFromUrl = (): string | null => {
     return pathMatch[1];
   }
 
+  return null;
+};
+
+/**
+ * Extracts source domain information from URL if present
+ * @returns The source domain or null if not found
+ */
+export const getSourceDomain = (): string | null => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const source = urlParams.get('source');
+  
+  if (source) {
+    // Log for analytics
+    console.log(`Traffic source detected: ${source}`);
+    return source;
+  }
+  
   return null;
 };
 
@@ -53,6 +96,9 @@ export const shareContent = async (
   text: string,
   url: string
 ): Promise<boolean> => {
+  // Log share attempt for analytics
+  console.log(`Share attempt - Title: "${title}", URL: ${url}`);
+  
   try {
     // Try to use the native Web Share API if available
     if (navigator.share) {
@@ -61,11 +107,13 @@ export const shareContent = async (
         text,
         url
       });
+      console.log('Content shared via Web Share API');
       return true;
     }
 
     // Fallback to clipboard copy
     await navigator.clipboard.writeText(url);
+    console.log('URL copied to clipboard');
     return true;
   } catch (error) {
     console.error('Error sharing content:', error);
@@ -84,6 +132,7 @@ export const shareContent = async (
       document.execCommand('copy');
       document.body.removeChild(tempInput);
 
+      console.log('URL copied to clipboard via execCommand fallback');
       return true;
     } catch (err) {
       console.error('Clipboard fallback failed:', err);

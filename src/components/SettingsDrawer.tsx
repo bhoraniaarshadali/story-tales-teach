@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,12 +128,12 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
       onValueChange={setActiveTab}
       className="w-full"
     >
-      <TabsList className="grid grid-cols-4 mb-6">
-        <TabsTrigger value="display" className="flex items-center gap-1.5">
+      <TabsList className="grid grid-cols-4 mb-6 w-full">
+        <TabsTrigger value="display" className="flex items-center gap-1.5 justify-center">
           <Palette className="h-4 w-4" />
           <span className="hidden sm:inline">Display</span>
         </TabsTrigger>
-        <TabsTrigger value="history" className="flex items-center gap-1.5">
+        <TabsTrigger value="history" className="flex items-center gap-1.5 justify-center">
           <History className="h-4 w-4" />
           <span className="hidden sm:inline">History</span>
           {stories.length > 0 && (
@@ -141,11 +142,11 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             </Badge>
           )}
         </TabsTrigger>
-        <TabsTrigger value="accessibility" className="flex items-center gap-1.5">
+        <TabsTrigger value="accessibility" className="flex items-center gap-1.5 justify-center">
           <UserCircle className="h-4 w-4" />
           <span className="hidden sm:inline">Account</span>
         </TabsTrigger>
-        <TabsTrigger value="about" className="flex items-center gap-1.5">
+        <TabsTrigger value="about" className="flex items-center gap-1.5 justify-center">
           <CircleHelp className="h-4 w-4" />
           <span className="hidden sm:inline">About</span>
         </TabsTrigger>
@@ -348,15 +349,15 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
           ) : (
             <div>
               <Tabs defaultValue="all" className="w-full">
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger value="all" className="flex-1">All Stories</TabsTrigger>
-                  <TabsTrigger value="favorites" className="flex-1">
+                <TabsList className="w-full mb-4 grid grid-cols-3">
+                  <TabsTrigger value="all" className="justify-center">All Stories</TabsTrigger>
+                  <TabsTrigger value="favorites" className="justify-center">
                     Favorites
                     {favoriteStories.length > 0 && (
                       <Badge variant="secondary" className="ml-2">{favoriteStories.length}</Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="recent" className="flex-1">Recent</TabsTrigger>
+                  <TabsTrigger value="recent" className="justify-center">Recent</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="all">

@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { generateStoryWithLLM } from "../utils/llmWrapper";
 
 interface StoryResponse {
   title: string;
@@ -44,31 +45,20 @@ export const generateStory = async (topic: string, userPreferences?: UserPrefere
       console.log("User preferences:", JSON.stringify(userPreferences));
     }
 
-    // Call the Supabase Edge Function with user preferences if available
-    const { data, error } = await supabase.functions.invoke('generate-story', {
-      body: { 
-        topic: topic.trim(),
-        userPreferences
-      }
+    // Use the platform-agnostic wrapper instead of directly calling Supabase function
+    const data = await generateStoryWithLLM(topic, userPreferences, {
+      // Default to openrouter but can be changed based on configuration
+      provider: "openrouter",
+      temperature: 0.7,
+      maxTokens: 2000
     });
-
-    if (error) {
-      console.log(error);
-      // Check if this is a 400 status code (invalid topic)
-      if (error.status === 400) {
-        // Return the data as a valid response since it contains the invalid topic message
-        return data as StoryResponse;
-      }
-      console.error('Error calling generate-story function:', error);
-      throw new Error(error.message || 'Failed to generate story');
-    }
 
     // Make sure we have valid data before returning
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response from generate-story function');
     }
 
-    // Check if the response contains an error message but was returned with status 200
+    // Check if the response contains an error message
     if (data.error) {
       console.error('Error in response data:', data.error);
       throw new Error(data.error || 'Story generation failed');
@@ -144,3 +134,6 @@ function contentExplainsTopic(story: any, topic: string): boolean {
   // Story should mention the topic at least 3 times and in at least 3 different sections
   return contentMentionsCount >= 3 && sectionsWithTopic >= 2; // Relaxed validation slightly
 }
+
+// Export the type for other files to use
+export type { StoryResponse };
