@@ -1,21 +1,22 @@
-
 import React, { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Story } from "@/hooks/useStoryManager";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { 
-  Heart, 
-  Share2, 
-  ThumbsUp, 
-  ThumbsDown, 
-  Edit, 
-  Save, 
+import {
+  Heart,
+  Share2,
+  ThumbsUp,
+  ThumbsDown,
+  Edit,
+  Save,
   X
 } from "lucide-react";
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -33,11 +34,11 @@ interface StoryDisplayProps {
   onToggleFavorite?: () => void;
 }
 
-const StoryDisplay: React.FC<StoryDisplayProps> = ({ 
-  story, 
-  isEditable = false, 
+const StoryDisplay: React.FC<StoryDisplayProps> = ({
+  story,
+  isEditable = false,
   onEdit,
-  onToggleFavorite 
+  onToggleFavorite
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(story.content);
@@ -85,7 +86,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
         }
       }
     };
-    
+
     loadFeedback();
   }, [story.id]);
 
@@ -111,18 +112,18 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
 
   const handleShare = async () => {
     if (!story.id) return;
-    
+
     setIsSharing(true);
     try {
       const shareUrl = createShareableUrl(story.id);
       const shareText = `Check out this amazing story: "${story.title}"`;
-      
+
       const success = await shareContent(
         story.title,
         shareText,
         shareUrl
       );
-      
+
       if (success) {
         toast.success("Story link copied to clipboard!");
       } else {
@@ -142,7 +143,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
     // Optimistic UI update
     const newFeedbackState = handleFeedbackOptimistic(story.id, type, userFeedback);
     const prevFeedbackState = userFeedback;
-    
+
     // Update local state for immediate feedback
     if (type === "like") {
       setLikes(prev => newFeedbackState === "like" ? prev + 1 : prev - 1);
@@ -152,11 +153,11 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
       if (prevFeedbackState === "like") setLikes(prev => prev - 1);
     }
     setUserFeedback(newFeedbackState);
-    
+
     // Update in the backend
     const action = newFeedbackState === type ? "add" : "remove";
     const result = await updateStoryFeedback(story.id, type, action);
-    
+
     if (!result) {
       // Revert optimistic update if backend update fails
       setUserFeedback(prevFeedbackState);
@@ -175,8 +176,8 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
             story.difficulty === "beginner"
               ? "outline"
               : story.difficulty === "intermediate"
-              ? "secondary"
-              : "destructive"
+                ? "secondary"
+                : "destructive"
           }
         >
           {story.difficulty}
@@ -215,22 +216,26 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
         ) : (
           <div
             ref={storyContentRef}
-            className="story-content max-h-[400px] overflow-y-auto text-sm md:text-base leading-relaxed"
+            className="prose prose-sm md:prose-base max-w-none text-gray-800 dark:text-gray-200 max-h-[400px] overflow-y-auto leading-relaxed"
           >
-            {story.content}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {story.content}
+            </ReactMarkdown>
           </div>
         )}
 
         <Progress value={readingProgress} className="mt-2" />
 
-        <div className="mt-4">
-          <strong>Key Takeaway:</strong>
-          <p className="text-gray-600 dark:text-gray-400">{story.takeaway}</p>
-        </div>
+        {story.takeaway && (
+          <div className="mt-4">
+            <strong className="text-gray-800 dark:text-gray-200">Key Takeaway:</strong>
+            <p className="text-gray-600 dark:text-gray-400">{story.takeaway}</p>
+          </div>
+        )}
 
         {story.keyPoints && story.keyPoints.length > 0 && (
           <div className="mt-4">
-            <strong>Key Points:</strong>
+            <strong className="text-gray-800 dark:text-gray-200">Key Points:</strong>
             <ul className="list-disc list-inside text-gray-600 dark:text-gray-400">
               {story.keyPoints.map((point, index) => (
                 <li key={index}>{point}</li>
@@ -244,9 +249,9 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className={cn(
                       "hover:bg-primary/10",
                       userFeedback === "like" && "text-green-600 bg-green-100 dark:bg-green-900/20"
@@ -268,8 +273,8 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     className={cn(
                       "hover:bg-primary/10",
@@ -292,8 +297,8 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     className={cn(
                       "hover:bg-primary/10",
@@ -321,8 +326,8 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     className="hover:bg-primary/10"
                     onClick={handleShare}
