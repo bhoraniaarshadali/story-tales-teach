@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { generateStory, UserPreferences, type StoryResponse } from "../services/storyService";
 import { supabase } from "@/integrations/supabase/client";
 import { storeStoryInDatabase, fetchStories } from "../utils/llmWrapper";
@@ -38,89 +39,54 @@ export const useStoryManager = () => {
   const [retryCount, setRetryCount] = useState<number>(0);
   const [isDatabaseSynced, setIsDatabaseSynced] = useState<boolean>(false);
 
-  // Predefined story to ensure it’s available
-  const predefinedStory: Story = {
-    id: "solar-system-1",
-    title: "Discovering the Wonders of the Solar System",
-    content: `
-**Discovering the Wonders of the Solar System**
-
-*Dhruv*  
-*Emotions: Curiosity, Awe, Determination*
-
-### A Spark in the Night Sky  
-Dhruv had always felt small under the vast night sky. On a chilly evening, wrapped in a blanket, he sat on his rooftop with his grandfather, staring at the twinkling stars. “Baba, what are those lights?” he asked, his eyes wide with wonder.  
-“They’re stars, Dhruv,” his grandfather replied with a warm smile. “And our Sun is a star too—the heart of our Solar System, holding a family of planets in its gravitational embrace.”  
-Dhruv’s curiosity ignited like a rocket. “A family of planets?” he whispered, imagining himself as an astronaut soaring through space. He decided then and there to uncover the secrets of the Solar System.
-
-### A Journey Through the Cosmos  
-The next day, Dhruv dove into his books, his imagination transforming his room into a spaceship cockpit. He learned that the Solar System is a grand orchestra of eight planets: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. Each planet was a unique character in this cosmic story.  
-Mercury, the smallest, zipped around the Sun like a speedy messenger, while Jupiter, a colossal gas giant, swirled with fiery storms, its Great Red Spot a raging hurricane bigger than Earth itself. Dhruv’s jaw dropped when he read that the Sun, a blazing ball of fire, made up 99.8% of the Solar System’s mass. “It’s like the Sun is the parent, and the planets are its children!” he exclaimed.  
-But understanding the vast distances between planets was hard. Dhruv felt overwhelmed, thinking, *“How can something so big even exist?”* His friend Rohan noticed his frustration and suggested, “Why don’t we make a model of the Solar System? It might help!”  
-
-### A Model That Brings It All Together  
-Dhruv and Rohan gathered marbles, balls, and string to create a scale model in Dhruv’s backyard. They placed a basketball as the Sun and used a tiny bead for Mercury, a tennis ball for Jupiter, and a glowing sticker for Earth. As they laid out the planets, Dhruv began to see the Solar System come to life. “Look, Rohan! Venus spins the opposite way—like it’s dancing to its own beat!” Dhruv said, his earlier frustration melting into excitement.  
-Rohan grinned. “And did you know Saturn’s rings are made of ice and rock? It’s like the Solar System’s jewelry!”  
-As they worked, Dhruv realized the planets reminded him of his own family. “Jupiter is like my big brother, always taking up space,” he laughed, “and Mercury is like my little cousin, always running around!” This connection made the Solar System feel closer, like a family he could understand.
-
-> *"The universe is a pretty big place. If it’s just us, it seems like an awful waste of space."* — Dhruv whispered, feeling the weight of the cosmos.
-
-### A New Perspective  
-That night, Dhruv looked up at the stars again, but this time, he felt different. The Solar System wasn’t just a collection of facts—it was a story of harmony, where every planet played its part around the Sun. Dhruv thought, *“Just like the planets, I have my own place in the universe. I need to keep exploring, keep learning, and live in balance with the world around me.”*  
-Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I’ll keep discovering the wonders of the cosmos!”
-
-**Try This:** Create your own Solar System model using everyday objects. How does it help you understand the distances and sizes of the planets?
-    `,
-    takeaway: "Exploring the Solar System teaches us about our place in the universe and inspires us to live in harmony with nature.",
-    timestamp: new Date().toISOString(),
-    topic: "Solar System",
-    character: {
-      name: "Dhruv",
-      emoji: "🚀",
-      traits: "curious, imaginative, determined"
-    },
-    emotions: ["Curiosity", "Awe", "Determination"],
-    keyPoints: [
-      "The Solar System includes eight planets, each with unique traits, orbiting the Sun.",
-      "The Sun’s gravity holds the Solar System together, just like a family bond.",
-      "Building a model can make the vastness of space feel more relatable.",
-      "The Solar System reminds us to find balance and wonder in our own lives."
-    ],
-    difficulty: "beginner",
-    isFavorite: false,
-    likes: 0,
-    dislikes: 0
-  };
-
   // Load story history from localStorage and database
   useEffect(() => {
-    const loadStoriesFromLocalStorage = () => {
+    const loadStoriesFromLocalStorage = async () => {
       const savedStories = localStorage.getItem("storyHistory");
-      if (savedStories) {
-        const parsedStories = JSON.parse(savedStories);
-        // Ensure the predefined story is included
-        const hasPredefinedStory = parsedStories.some((s: Story) => s.id === predefinedStory.id);
-        if (!hasPredefinedStory) {
-          parsedStories.push(predefinedStory);
+      let localStories: Story[] = savedStories ? JSON.parse(savedStories) : [];
+
+      // Migrate stories with old "local-" IDs to UUIDs
+      const migratedStories = await Promise.all(localStories.map(async (story) => {
+        if (story.id && story.id.includes('local-')) {
+          const newId = uuidv4();
+          const storyData = {
+            title: story.title,
+            content: story.content,
+            takeaway: story.takeaway,
+            topic: story.topic || "",
+            character: story.character,
+            emotions: story.emotions,
+            keyPoints: story.keyPoints,
+            difficulty: story.difficulty,
+            is_public: false,
+            likes: story.likes || 0,
+            dislikes: story.dislikes || 0
+          };
+
+          try {
+            await storeStoryInDatabase(storyData);
+            console.log(`Migrated story "${story.title}" to UUID: ${newId}`);
+            return { ...story, id: newId };
+          } catch (error: any) {
+            console.error(`Failed to migrate story "${story.title}":`, error.message, error);
+            return story;
+          }
         }
-        setStoryHistory(parsedStories);
-      } else {
-        // If no stories in localStorage, initialize with predefined story
-        setStoryHistory([predefinedStory]);
-        localStorage.setItem("storyHistory", JSON.stringify([predefinedStory]));
-      }
+        return story;
+      }));
+
+      setStoryHistory(migratedStories);
+      localStorage.setItem("storyHistory", JSON.stringify(migratedStories));
     };
 
     const loadStoriesFromDatabase = async () => {
       try {
-        // Fetch stories from the database
         const data = await fetchStories({ limit: 50, isPublic: false });
 
         if (data && data.length > 0) {
-          // Convert database stories to the format expected by the app
           const dbStories = data.map(dbStory => ({
-            title: dbStory.title,
-            content: dbStory.content,
+            title: dbStory.title || "Untitled Story",
+            content: dbStory.content || "No content available.",
             takeaway: dbStory.takeaway || "",
             id: dbStory.id,
             timestamp: dbStory.created_at,
@@ -134,12 +100,7 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
             dislikes: dbStory.dislikes || 0
           }));
 
-          // Merge with any local stories, ensuring predefined story is included
           const localStories = JSON.parse(localStorage.getItem("storyHistory") || "[]");
-          const hasPredefinedStory = localStories.some((s: Story) => s.id === predefinedStory.id);
-          if (!hasPredefinedStory) {
-            localStories.push(predefinedStory);
-          }
           const mergedStories = mergeStories(localStories, dbStories);
 
           setStoryHistory(mergedStories);
@@ -147,16 +108,14 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
           console.log(`Loaded ${dbStories.length} stories from database and merged with local stories`);
           setIsDatabaseSynced(true);
         } else {
-          // If no stories in database, ensure predefined story is in localStorage
-          loadStoriesFromLocalStorage();
+          await loadStoriesFromLocalStorage();
         }
-      } catch (error) {
-        console.error('Error loading stories from database:', error);
-        loadStoriesFromLocalStorage();
+      } catch (error: any) {
+        console.error('Error loading stories from database:', error.message, error);
+        await loadStoriesFromLocalStorage();
       }
     };
 
-    // Load user preferences from localStorage
     const loadUserPreferences = () => {
       const savedPreferences = localStorage.getItem("userPreferences");
       if (savedPreferences) {
@@ -168,49 +127,59 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
     loadStoriesFromDatabase();
   }, []);
 
-  // Save story history to localStorage and sync with database
   useEffect(() => {
     if (storyHistory.length > 0) {
       localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
 
       if (isDatabaseSynced) {
-        storyHistory.forEach(async (story) => {
-          if (story.id && !story.id.includes('local-') && story.id !== predefinedStory.id) {
-            return; // Skip stories already in database or the predefined story
-          }
+        const syncStories = async () => {
+          for (const story of storyHistory) {
+            if (story.id && !story.id.includes('local-')) {
+              continue;
+            }
 
-          try {
-            const storyData = {
-              title: story.title,
-              content: story.content,
-              takeaway: story.takeaway,
-              topic: story.topic || "",
-              character: story.character,
-              emotions: story.emotions,
-              keyPoints: story.keyPoints,
-              difficulty: story.difficulty,
-              is_public: false,
-              likes: story.likes || 0,
-              dislikes: story.dislikes || 0
-            };
-            await storeStoryInDatabase(storyData);
-            console.log(`Story "${story.title}" saved to database successfully`);
-          } catch (error) {
-            console.error('Error syncing story to database:', error);
+            try {
+              const storyData = {
+                title: story.title,
+                content: story.content,
+                takeaway: story.takeaway,
+                topic: story.topic || "",
+                character: story.character,
+                emotions: story.emotions,
+                keyPoints: story.keyPoints,
+                difficulty: story.difficulty,
+                is_public: false,
+                likes: story.likes || 0,
+                dislikes: story.dislikes || 0
+              };
+
+              const newStoryId = await storeStoryInDatabase(storyData);
+              console.log(`Story "${story.title}" saved to database with ID: ${newStoryId}`);
+
+              setStoryHistory(prev => prev.map(s =>
+                s.id === story.id ? { ...s, id: newStoryId } : s
+              ));
+
+              if (story.id === story.id) {
+                setStory(prev => prev ? { ...prev, id: newStoryId } : prev);
+              }
+            } catch (error: any) {
+              console.error('Error syncing story to database:', error.message, error);
+            }
           }
-        });
+        };
+
+        syncStories();
       }
     }
   }, [storyHistory, isDatabaseSynced]);
 
-  // Save user preferences to localStorage
   useEffect(() => {
     if (userPreferences) {
       localStorage.setItem("userPreferences", JSON.stringify(userPreferences));
     }
   }, [userPreferences]);
 
-  // Helper to merge stories from different sources avoiding duplicates
   const mergeStories = (localStories: Story[], dbStories: Story[]): Story[] => {
     const titleMap = new Map<string, Story>();
 
@@ -234,7 +203,6 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
       });
   };
 
-  // Update user preferences
   const updateUserPreferences = (newPreferences: UserPreferences) => {
     setUserPreferences(prev => ({
       ...(prev || {}),
@@ -244,7 +212,6 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
     toast.success("Your preferences have been updated!");
   };
 
-  // Track user's previous topics
   const updatePreviousTopics = (topic: string) => {
     if (!userPreferences) return;
 
@@ -299,15 +266,16 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
         emotions: generatedStory.emotions || [],
         keyPoints: generatedStory.keyPoints || [],
         difficulty: generatedStory.difficulty || "beginner",
-        likes: 0,
-        dislikes: 0
+        likes: generatedStory.likes || 0,
+        dislikes: generatedStory.dislikes || 0
       };
 
       console.log(`Story generated for topic: "${topic}", title: "${storyWithMeta.title}"`);
       console.log(`Personalization applied:`, storyWithMeta.personalizedFor || "none");
 
+      let newStoryId: string | undefined;
       try {
-        await storeStoryInDatabase({
+        const storyData = {
           title: storyWithMeta.title,
           content: storyWithMeta.content,
           takeaway: storyWithMeta.takeaway,
@@ -319,10 +287,17 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
           is_public: false,
           likes: storyWithMeta.likes,
           dislikes: storyWithMeta.dislikes
-        });
-        console.log('Story saved to database successfully');
-      } catch (dbError) {
-        console.error('Failed to store story in database:', dbError);
+        };
+        newStoryId = await storeStoryInDatabase(storyData);
+        console.log('Story saved to database successfully with ID:', newStoryId);
+      } catch (dbError: any) {
+        console.error('Failed to store story in database:', dbError.message, dbError);
+        setError(`Failed to save story to database: ${dbError.message}`);
+        toast.error(`Failed to save story to database: ${dbError.message}`);
+      }
+
+      if (newStoryId) {
+        storyWithMeta.id = newStoryId;
       }
 
       if (usePersonalization) {
@@ -345,13 +320,30 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
       } else {
         toast.success("Story created successfully!");
       }
-    } catch (error) {
-      console.error("Error generating story:", error);
+    } catch (error: any) {
+      console.error("Error generating story:", error.message, error);
       setRetryCount(prevRetry => prevRetry + 1);
 
       if (retryCount >= 2) {
         toast.error("Multiple generation attempts failed. We're having technical difficulties.");
-        setError(`We're having trouble creating stories at the moment. Please try again later or try a different topic.`);
+        setError(`We're having trouble creating stories at the moment. Please try again later or try a different topic. If the issue persists, consider checking your internet connection or contacting support.`);
+        const fallbackStory: Story = {
+          title: `A Story About ${topic}`,
+          content: `We're sorry, but we couldn't generate a story about "${topic}" at this time. Please try again later or choose a different topic.`,
+          takeaway: "Sometimes, even the best technology needs a break. Keep exploring!",
+          id: `local-${Date.now().toString()}`,
+          timestamp: new Date().toISOString(),
+          topic: topic,
+          isFavorite: false,
+          character: { name: "Narrator", emoji: "📖" },
+          emotions: ["Apology"],
+          keyPoints: [],
+          difficulty: "beginner",
+          likes: 0,
+          dislikes: 0
+        };
+        setStory(fallbackStory);
+        setStoryHistory(prev => [fallbackStory, ...prev]);
       } else {
         toast.error("Failed to create story. Please try again.");
         setError(`We couldn't create a story about "${topic}". Please try again or try a different topic.`);
@@ -413,8 +405,8 @@ Filled with awe, Dhruv whispered to the stars, “This is just the beginning. I�
 
   const clearHistory = () => {
     if (confirm("Are you sure you want to clear your story history? This cannot be undone.")) {
-      setStoryHistory([predefinedStory]); // Keep the predefined story
-      localStorage.setItem("storyHistory", JSON.stringify([predefinedStory]));
+      setStoryHistory([]);
+      localStorage.setItem("storyHistory", JSON.stringify([]));
       toast.success("History cleared successfully");
     }
   };

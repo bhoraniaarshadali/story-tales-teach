@@ -13,13 +13,13 @@ import PageFooter from "../components/PageFooter";
 import ErrorMessage from "../components/ErrorMessage";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import AnimatedCursor from "../components/AnimatedCursor";
-import ThemeToggle from "../components/ThemeToggle"; // New component for dark/light mode
+import ThemeToggle from "../components/ThemeToggle";
 
 // Hooks and Utils
 import { useStoryManager } from "../hooks/useStoryManager";
 import { getStoryIdFromUrl, getSourceDomain } from "../utils/shareUtils";
 import { analyzePopularTopics } from "../utils/llmWrapper";
-import { useInView } from "react-intersection-observer"; // For scroll animations
+import { useInView } from "react-intersection-observer";
 
 // Re-export the Story type for backward compatibility
 export type { Story } from "../hooks/useStoryManager";
@@ -30,7 +30,6 @@ const Index = () => {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [popularTopics, setPopularTopics] = useState<{ topic: string, count: number }[]>([]);
   const [theme, setTheme] = useState(() => {
-    // Check for saved theme or use system preference
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) return savedTheme;
 
@@ -39,7 +38,6 @@ const Index = () => {
       : "light";
   });
 
-  // Animation refs
   const [formRef, formInView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -67,7 +65,6 @@ const Index = () => {
     updateUserPreferences
   } = useStoryManager();
 
-  // Set theme on body element
   useEffect(() => {
     document.body.className = theme;
     localStorage.setItem("theme", theme);
@@ -77,7 +74,6 @@ const Index = () => {
     setTheme(prevTheme => prevTheme === "light" ? "dark" : "light");
   };
 
-  // Load popular topics with improved error handling
   useEffect(() => {
     const loadPopularTopics = async () => {
       try {
@@ -86,7 +82,6 @@ const Index = () => {
         console.log("Popular topics loaded:", topics);
       } catch (error) {
         console.error("Error loading popular topics:", error);
-        // Show a less intrusive toast message instead of full error state
         toast.error("Couldn't load trending topics. Try refreshing.");
       }
     };
@@ -94,7 +89,6 @@ const Index = () => {
     loadPopularTopics();
   }, []);
 
-  // Check for story ID in URL and source domain when component mounts
   useEffect(() => {
     const checkForSharedStory = async () => {
       try {
@@ -102,21 +96,16 @@ const Index = () => {
         if (storyId) {
           console.log(`Detected shared story ID: ${storyId}`);
 
-          // Track the source domain for analytics
           const sourceDomain = getSourceDomain();
           if (sourceDomain) {
             console.log(`Story was shared from: ${sourceDomain}`);
-            // You could record this in analytics here
           }
 
-          // Check if the story exists in history
           const existsInHistory = storyHistory.some(s => s.id === storyId);
 
           if (existsInHistory) {
-            // If it exists locally, just view it
             console.log("Story found in local history, displaying");
             viewHistoryStory(storyId);
-            // Scroll to story after a short delay to ensure rendering
             setTimeout(() => {
               const storyElement = document.getElementById('story-display');
               if (storyElement) {
@@ -124,7 +113,6 @@ const Index = () => {
               }
             }, 100);
           } else {
-            // If not in local history, redirect to the share page
             console.log("Story not found in local history, redirecting to share page");
             navigate(`/share/${storyId}`);
           }
@@ -138,35 +126,39 @@ const Index = () => {
     };
 
     checkForSharedStory();
-    // We only want this to run once on mount and when storyHistory changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storyHistory.length]);
+  }, [storyHistory.length, navigate, viewHistoryStory]);
 
-  // Handle URL changes during navigation (browser back/forward)
   useEffect(() => {
     if (initialLoadComplete) {
       const handleLocationChange = () => {
         const storyId = getStoryIdFromUrl();
         if (storyId && storyHistory.some(s => s.id === storyId)) {
           viewHistoryStory(storyId);
-        } else if (!storyId && story) {
-          // User navigated back to root, clear current story if needed
-          // This could be optional behavior
         }
       };
 
       handleLocationChange();
     }
-  }, [location.pathname, initialLoadComplete, storyHistory, viewHistoryStory, story]);
+  }, [location.pathname, initialLoadComplete, storyHistory, viewHistoryStory]);
+
+  // Helper function to convert topic to URL-friendly format
+  const topicToUrl = (topic: string) => {
+    return topic.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  };
+
+  // Callback for navigating to a topic-specific page
+  const handleTopicClick = (topic: string) => {
+    const urlFriendlyTopic = topicToUrl(topic);
+    navigate(`/${urlFriendlyTopic}-story`);
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
-        ? 'bg-gradient-to-b from-gray-900 to-gray-800 text-white'
-        : 'bg-gradient-to-b from-blue-50 to-violet-50'
+      ? 'bg-gradient-to-b from-gray-900 to-gray-800 text-white'
+      : 'bg-gradient-to-b from-blue-50 to-violet-50'
       }`}>
       <AnimatedCursor />
 
-      {/* Decorative elements */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className={`absolute top-1/4 left-1/6 w-96 h-96 rounded-full 
           ${theme === 'dark' ? 'bg-purple-700' : 'bg-pink-300'} 
@@ -212,6 +204,7 @@ const Index = () => {
           >
             <StoryForm
               onSubmit={handleSubmitTopic}
+              onTopicClick={handleTopicClick} // Pass the navigation callback
               isLoading={isLoading}
               userPreferences={userPreferences}
               onUpdatePreferences={updateUserPreferences}

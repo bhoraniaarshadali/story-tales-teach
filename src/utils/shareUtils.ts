@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for sharing stories across platforms
  */
@@ -25,12 +24,12 @@ export const createShareableUrl = (storyId: string): string => {
 export const createTrackableShareUrl = (storyId: string, includeSource: boolean = true): string => {
   // Base URL with story ID
   const baseUrl = createShareableUrl(storyId);
-  
+
   if (!includeSource) return baseUrl;
-  
+
   // Extract current domain for tracking
   const currentDomain = window.location.hostname;
-  
+
   // Add source parameter for analytics
   const separator = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${separator}source=${encodeURIComponent(currentDomain)}`;
@@ -70,13 +69,13 @@ export const getStoryIdFromUrl = (): string | null => {
 export const getSourceDomain = (): string | null => {
   const urlParams = new URLSearchParams(window.location.search);
   const source = urlParams.get('source');
-  
+
   if (source) {
     // Log for analytics
     console.log(`Traffic source detected: ${source}`);
     return source;
   }
-  
+
   return null;
 };
 
@@ -94,7 +93,7 @@ export const shareContent = async (
 ): Promise<boolean> => {
   // Log share attempt for analytics
   console.log(`Share attempt - Title: "${title}", URL: ${url}`);
-  
+
   try {
     // Try to use the native Web Share API if available
     if (navigator.share) {
@@ -189,7 +188,7 @@ export const generateSocialMetaTags = (story: {
 }): string => {
   const description = story.takeaway || story.content.substring(0, 150) + '...';
   const imageUrl = `https://source.unsplash.com/random/1200x630/?story,${encodeURIComponent(story.title.split(' ')[0])}`;
-  
+
   return `
     <!-- Open Graph meta tags -->
     <meta property="og:title" content="${story.title}" />
@@ -205,3 +204,52 @@ export const generateSocialMetaTags = (story: {
     <meta name="twitter:image" content="${imageUrl}" />
   `;
 };
+
+/**
+ * Strips Markdown formatting from content to create plain text
+ * @param content The Markdown content to strip
+ * @returns Plain text without Markdown formatting
+ */
+export function stripMarkdown(content: string): string {
+  // Remove Markdown headings (##)
+  let plainText = content.replace(/^##\s*(.+)$/gm, '$1');
+
+  // Remove bold (**text**) and italics (_text_)
+  plainText = plainText.replace(/\*\*(.+?)\*\*/g, '$1');
+  plainText = plainText.replace(/_(.+?)_/g, '$1');
+
+  // Remove centered quotes (<div class='centered-quote'>...</div>)
+  plainText = plainText.replace(/<div class='centered-quote'>(.+?)<\/div>/g, '"$1"');
+
+  // Remove suggestion boxes (already removed, but ensure for safety)
+  plainText = plainText.replace(/<div class='suggestion-box'>[\s\S]*?<\/div>/g, '');
+
+  // Convert bullet points (- ) to numbered list
+  let bulletCounter = 1;
+  plainText = plainText.replace(/^- (.+)$/gm, () => `${bulletCounter++}. $1`);
+  // Reset counter for each new list
+  plainText = plainText.replace(/(\n\d+\..+)+/g, (match) => {
+    bulletCounter = 1;
+    return match.replace(/\d+\./g, () => `${bulletCounter++}.`);
+  });
+
+  // Remove emojis (e.g., 💡)
+  plainText = plainText.replace(/💡/g, '');
+
+  // Normalize newlines and spacing
+  plainText = plainText.replace(/\n{2,}/g, '\n\n').trim();
+
+  return plainText;
+}
+
+/**
+ * Formats a story object into a plain-text string for sharing
+ * @param story The story object containing title, content, takeaway, and key points
+ * @returns A plain-text string suitable for sharing
+ */
+export function formatStoryForSharing(story: { title: string; content: string; takeaway: string; keyPoints: string[] }): string {
+  const plainContent = stripMarkdown(story.content);
+  const plainKeyPoints = story.keyPoints.map((point, index) => `${index + 1}. ${stripMarkdown(point)}`).join('\n');
+
+  return `${story.title}\n\n${plainContent}\n\nKey Takeaway:\n${stripMarkdown(story.takeaway)}\n\nKey Points:\n${plainKeyPoints}`;
+}

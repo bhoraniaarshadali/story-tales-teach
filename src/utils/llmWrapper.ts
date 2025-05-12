@@ -1,4 +1,3 @@
-
 /**
  * Platform-agnostic LLM wrapper for story generation
  * This allows easy switching between different AI providers (OpenAI, Mixtral, Claude, etc.)
@@ -28,14 +27,14 @@ export async function generateStoryWithLLM(
   config: LLMConfig = { provider: "openrouter" }
 ): Promise<StoryResponse> {
   console.log(`LLM Wrapper: Generating story about "${topic}" using ${config.provider}`);
-  
+
   try {
     // Log the start of story generation with provider info
     console.log(`Starting story generation with ${config.provider} for topic: ${topic}`);
-    
+
     // Call the Supabase Edge Function with user preferences and LLM config
     const { data, error } = await supabase.functions.invoke('generate-story', {
-      body: { 
+      body: {
         topic: topic.trim(),
         userPreferences,
         llmConfig: config
@@ -43,28 +42,13 @@ export async function generateStoryWithLLM(
     });
 
     if (error) {
-      console.error('Error from LLM service:', error);
+      console.error('Error from LLM service:', error.message, error);
       throw new Error(error.message || 'Failed to generate story');
     }
 
-    // Store the successful story in the database
-    try {
-      await storeStoryInDatabase({
-        title: data.title,
-        content: data.content,
-        takeaway: data.takeaway,
-        topic: topic,
-        is_public: false
-      });
-      console.log('Story successfully stored in database');
-    } catch (dbError) {
-      console.error('Failed to store story in database:', dbError);
-      // Continue with the story generation even if database storage fails
-    }
-
     return data as StoryResponse;
-  } catch (error) {
-    console.error('Error in generateStoryWithLLM:', error);
+  } catch (error: any) {
+    console.error('Error in generateStoryWithLLM:', error.message, error);
     throw error;
   }
 }
@@ -76,19 +60,49 @@ export async function storeStoryInDatabase(story: {
   title: string;
   content: string;
   takeaway: string;
-  topic: string;
+  topic?: string;
+  character?: {
+    name: string;
+    emoji: string;
+    traits?: string;
+  };
+  emotions?: string[] | string;
+  keyPoints?: string[];
+  difficulty?: string;
   is_public?: boolean;
-}) {
-  const { error } = await supabase.from('stories').insert({
-    title: story.title,
-    content: story.content,
-    takeaway: story.takeaway,
-    topic: story.topic,
-    is_public: story.is_public || false,
-  });
+  likes?: number;
+  dislikes?: number;
+}): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('stories')
+      .insert({
+        title: story.title,
+        content: story.content,
+        takeaway: story.takeaway,
+        topic: story.topic || "",
+        character: story.character,
+        emotions: Array.isArray(story.emotions) ? story.emotions : (story.emotions ? [story.emotions] : []),
+        key_points: story.keyPoints || [],
+        difficulty: story.difficulty || "beginner",
+        is_public: story.is_public ?? false,
+        likes: story.likes ?? 0,
+        dislikes: story.dislikes ?? 0
+        // Removed created_at and updated_at; let the database handle these with CURRENT_TIMESTAMP
+      })
+      .select('id')
+      .single();
 
-  if (error) {
-    console.error('Error storing story in database:', error);
+    if (error) {
+      console.error('Error storing story in database:', error.message, error);
+      throw new Error(`Failed to store story: ${error.message}`);
+    }
+
+    const newStoryId = data.id;
+    console.log(`Story stored in database with ID: ${newStoryId}`);
+    return newStoryId;
+  } catch (error: any) {
+    console.error('Error in storeStoryInDatabase:', error.message, error);
     throw error;
   }
 }
@@ -105,19 +119,24 @@ export async function fetchStories({
   isPublic?: boolean;
   orderBy?: string;
 } = {}) {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('is_public', isPublic)
-    .order(orderBy, { ascending: false })
-    .limit(limit);
+  try {
+    const { data, error } = await supabase
+      .from('stories')
+      .select('*')
+      .eq('is_public', isPublic)
+      .order(orderBy, { ascending: false })
+      .limit(limit);
 
-  if (error) {
-    console.error('Error fetching stories:', error);
+    if (error) {
+      console.error('Error fetching stories:', error.message, error);
+      throw new Error(`Failed to fetch stories: ${error.message}`);
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Error in fetchStories:', error.message, error);
     throw error;
   }
-
-  return data;
 }
 
 /**
@@ -132,8 +151,8 @@ export async function analyzePopularTopics() {
       .limit(100);
 
     if (error) {
-      console.error('Error analyzing topics:', error);
-      throw error;
+      console.error('Error analyzing topics:', error.message, error);
+      throw new Error(`Failed to analyze topics: ${error.message}`);
     }
 
     // Count occurrences of each topic
@@ -150,8 +169,8 @@ export async function analyzePopularTopics() {
       .map(([topic, count]) => ({ topic, count }));
 
     return sortedTopics;
-  } catch (error) {
-    console.error('Error in analyzePopularTopics:', error);
+  } catch (error: any) {
+    console.error('Error in analyzePopularTopics:', error.message, error);
     // Return empty array as fallback
     return [];
   }
