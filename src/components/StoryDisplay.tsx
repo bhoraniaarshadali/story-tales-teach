@@ -29,10 +29,16 @@ import { Button } from "@/components/ui/button";
 import { createShareableUrl, shareContent, formatStoryForSharing } from "@/utils/shareUtils";
 import { updateStoryFeedback, getStoryFeedback, handleFeedbackOptimistic } from "@/utils/feedbackUtils";
 
+// Story interface ko generator.ts ke hisaab se extend karte hain
 interface StoryWithExtras extends Story {
-  funFact?: string;
+  funFact?: string; // Mazedaar tathya jo generator.ts se aata hai
+  retryCount?: number; // Kitni baar retry kiya
+  usedFallbackModel?: boolean; // Backup model use hua ya nahi
+  qualityWarning?: boolean; // Story mein koi dikkat hai toh
+  errorDetails?: string; // Error ka detail
 }
 
+// Props define karte hain, StoryDisplay ke liye
 interface StoryDisplayProps {
   story: StoryWithExtras;
   isEditable?: boolean;
@@ -41,6 +47,7 @@ interface StoryDisplayProps {
   theme?: "light" | "dark";
 }
 
+// Main component - story ko dikhane ka kaam yahan hota hai
 const StoryDisplay: React.FC<StoryDisplayProps> = ({
   story,
   isEditable = false,
@@ -48,6 +55,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
   onToggleFavorite,
   theme = "light"
 }) => {
+  // States banaye - editing, progress, feedback ke liye
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState(story.content || "");
   const [readingProgress, setReadingProgress] = useState(0);
@@ -57,15 +65,14 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
   const [isSharing, setIsSharing] = useState(false);
   const storyContentRef = useRef<HTMLDivElement>(null);
 
+  // Reading progress calculate karne ka logic
   useEffect(() => {
     const calculateReadingProgress = () => {
       if (!storyContentRef.current) return;
-
       const element = storyContentRef.current;
       const scrollHeight = element.scrollHeight - element.clientHeight;
       const scrollTop = element.scrollTop;
       const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
-
       setReadingProgress(progress);
     };
 
@@ -82,75 +89,96 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
     };
   }, []);
 
+  // Feedback load karne ka logic - likes aur dislikes database se
   useEffect(() => {
     const loadFeedback = async () => {
       if (story.id) {
-        const feedbackStats = await getStoryFeedback(story.id);
-        if (feedbackStats) {
-          setLikes(feedbackStats.likes);
-          setDislikes(feedbackStats.dislikes);
-          setUserFeedback(feedbackStats.userInteraction || null);
+        try {
+          const feedbackStats = await getStoryFeedback(story.id);
+          if (feedbackStats) {
+            setLikes(feedbackStats.likes);
+            setDislikes(feedbackStats.dislikes);
+            setUserFeedback(feedbackStats.userInteraction || null);
+            console.log(`✅ Feedback load hua for story "${story.id}"`);
+          }
+        } catch (error) {
+          console.error(`🛑 Feedback load mein error: ${error}`);
+          toast.error("Feedback load nahi hua, thodi dikkat hai!");
         }
       }
     };
-
     loadFeedback();
   }, [story.id]);
 
+  // Content edit karne ka function
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditableContent(e.target.value);
   };
 
+  // Edit button ka logic
   const handleEditClick = () => {
     setIsEditing(true);
+    toast.info("Edit mode on, bhai!");
   };
 
+  // Save button ka logic
   const handleSaveClick = () => {
     if (onEdit) {
       onEdit(editableContent);
     }
     setIsEditing(false);
+    toast.success("Changes save ho gaye!");
   };
 
+  // Cancel button ka logic
   const handleCancelClick = () => {
     setEditableContent(story.content || "");
     setIsEditing(false);
+    toast.info("Editing cancel kiya gaya.");
   };
 
+  // Share button ka logic - story ko share ya clipboard pe copy
   const handleShare = async () => {
-    if (!story.id) return;
+    if (!story.id) {
+      toast.error("Story ID nahi hai, share nahi kar sakte!");
+      return;
+    }
 
     setIsSharing(true);
     try {
       const shareUrl = createShareableUrl(story.id);
       const shareText = formatStoryForSharing({
-        title: story.title || "Untitled Story",
-        content: story.content || "No content available.",
-        takeaway: story.takeaway || "No takeaway available.",
+        title: story.title || "Bina Naam ki Kahani",
+        content: story.content || "Koi content nahi mila.",
+        takeaway: story.takeaway || "Kuch seekhne ko nahi mila.",
         keyPoints: story.keyPoints || []
       });
 
       const success = await shareContent(
-        story.title || "Untitled Story",
+        story.title || "Bina Naam ki Kahani",
         shareText,
         shareUrl
       );
 
       if (success) {
-        toast.success("Story copied to clipboard!");
+        toast.success("Story share ho gayi, bhai!");
       } else {
-        toast.error("Failed to share story. Please try again.");
+        toast.error("Share nahi hua, thodi dikkat hai.");
       }
     } catch (error) {
-      console.error("Error sharing story:", error);
-      toast.error("Failed to share story. Please try again.");
+      console.error(`🛑 Share mein error: ${error}`);
+      toast.error("Share nahi hua, dobara try karo!");
     } finally {
       setIsSharing(false);
     }
   };
 
+  // Like/dislike feedback ka logic
   const handleFeedback = async (type: "like" | "dislike") => {
-    if (!story.id) return;
+    if (!story.id) {
+      toast.error("Story ID nahi hai, feedback nahi de sakte!");
+      return;
+    }
 
     const newFeedbackState = handleFeedbackOptimistic(story.id, type, userFeedback);
     const prevFeedbackState = userFeedback;
@@ -164,32 +192,86 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
     }
     setUserFeedback(newFeedbackState);
 
-    const action = newFeedbackState === type ? "add" : "remove";
-    const result = await updateStoryFeedback(story.id, type, action);
+    try {
+      const action = newFeedbackState === type ? "add" : "remove";
+      const result = await updateStoryFeedback(story.id, type, action);
 
-    if (!result) {
+      if (!result) {
+        setUserFeedback(prevFeedbackState);
+        setLikes(story.likes || 0);
+        setDislikes(story.dislikes || 0);
+        toast.error("Feedback update nahi hua, dobara try karo!");
+      } else {
+        toast.success(type === "like" ? "Like diya, shabaash!" : "Dislike diya, koi baat nahi!");
+      }
+    } catch (error) {
+      console.error(`🛑 Feedback update mein error: ${error}`);
       setUserFeedback(prevFeedbackState);
-      setLikes(result?.likes || likes);
-      setDislikes(result?.dislikes || dislikes);
-      toast.error("Failed to update feedback. Please try again.");
+      setLikes(story.likes || 0);
+      setDislikes(story.dislikes || 0);
+      toast.error("Feedback update nahi hua, thodi dikkat hai!");
     }
   };
 
+  // Quote copy karne ka logic
   const handleCopyQuote = (quoteText: string) => {
     navigator.clipboard.writeText(quoteText)
       .then(() => {
-        toast.success("Quote copied to clipboard!");
+        toast.success("Quote clipboard pe copy ho gaya!");
       })
       .catch(() => {
-        toast.error("Failed to copy quote. Please try again.");
+        toast.error("Quote copy nahi hua, dobara try karo!");
       });
   };
 
+  // Quality warning ya error details dikhane ka logic
+  const renderStoryStatus = () => {
+    if (story.qualityWarning) {
+      return (
+        <Badge variant="destructive" className="mt-2">
+          Thodi dikkat hai, story poori nahi hai. Dobara try kar sakte ho!
+        </Badge>
+      );
+    }
+    if (story.errorDetails) {
+      return (
+        <Badge variant="secondary" className="mt-2">
+          Error: {story.errorDetails} (Retries: {story.retryCount || 0})
+        </Badge>
+      );
+    }
+    if (story.usedFallbackModel) {
+      return (
+        <Badge variant="outline" className="mt-2">
+          Backup system se story bani hai!
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  // Fun fact dikhane ka logic
+  const renderFunFact = () => {
+    if (story.funFact) {
+      return (
+        <div className={cn(
+          "mt-4 p-3 rounded-md",
+          theme === "dark" ? "bg-gray-700" : "bg-yellow-100"
+        )}>
+          <strong>Insightful Fact: </strong>{story.funFact}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Render ka main part - story ka UI banega yahan
   return (
     <div className={cn(
       "relative rounded-lg shadow-md",
       theme === "dark" ? "bg-gray-800/60 border border-gray-700/50" : "bg-white/70 border border-white/60"
     )}>
+      {/* Difficulty badge - story ka level dikhata hai */}
       {story.difficulty && (
         <Badge
           className="absolute top-2 right-2 z-10"
@@ -206,12 +288,13 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
       )}
 
       <div className="p-6">
+        {/* Header - title, character, aur status */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className={cn(
             "text-2xl font-semibold",
             theme === "dark" ? "text-white" : "text-gray-800"
           )}>
-            {story.title || "Untitled Story"}
+            {story.title || "Bina Naam ki Kahani"}
           </h2>
           {story.character && (
             <div className="flex items-center space-x-2">
@@ -243,7 +326,9 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
             </div>
           )}
         </div>
+        {renderStoryStatus()}
 
+        {/* Emotions dikhane ka section */}
         {story.emotions && (
           <div className="mb-4">
             <strong className={cn(
@@ -261,6 +346,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
           </div>
         )}
 
+        {/* Story content - markdown ya edit mode */}
         {isEditing ? (
           <textarea
             value={editableContent}
@@ -349,17 +435,20 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                 ),
               }}
             >
-              {story.content || "No content available."}
+              {story.content || "Koi content nahi mila."}
             </ReactMarkdown>
+            {renderFunFact()}
           </div>
         )}
 
+        {/* Reading progress bar */}
         <Progress
           value={readingProgress}
           className="mt-2"
           aria-label="Reading progress"
         />
 
+        {/* Takeaway section */}
         {story.takeaway && (
           <div className="mt-4">
             <strong className={cn(
@@ -375,6 +464,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
           </div>
         )}
 
+        {/* Key points section */}
         {story.keyPoints && story.keyPoints.length > 0 && (
           <div className="mt-4">
             <strong className={cn(
@@ -393,6 +483,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
           </div>
         )}
 
+        {/* Action buttons - like, dislike, favorite, share, edit */}
         <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TooltipProvider>
@@ -415,7 +506,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Like this story</p>
+                  <p>Is story ko like karo</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -440,7 +531,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Dislike this story</p>
+                  <p>Is story ko dislike karo</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -457,7 +548,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                     )}
                     onClick={onToggleFavorite}
                     disabled={!onToggleFavorite}
-                    aria-label={story.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    aria-label={story.isFavorite ? "Favorite se hatao" : "Favorite mein daalo"}
                   >
                     <motion.div
                       whileTap={story.isFavorite ? { scale: 0.8 } : { scale: 1.2 }}
@@ -470,7 +561,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{story.isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                  <p>{story.isFavorite ? "Favorite se hatao" : "Favorite mein daalo"}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -484,18 +575,19 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                     className="hover:bg-primary/10"
                     onClick={handleShare}
                     disabled={isSharing || !story.id}
-                    aria-label="Share this story"
+                    aria-label="Is story ko share karo"
                   >
                     <Share2 className={isSharing ? "animate-pulse" : ""} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Share this story</p>
+                  <p>Is story ko share karo</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
 
+          {/* Edit controls */}
           {isEditable && (
             <div className="flex justify-end space-x-2">
               {isEditing ? (
@@ -505,7 +597,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                     variant="default"
                     size="sm"
                     className="flex items-center gap-1"
-                    aria-label="Save changes"
+                    aria-label="Changes save karo"
                   >
                     <Save size={16} /> Save
                   </Button>
@@ -514,7 +606,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                     variant="outline"
                     size="sm"
                     className="flex items-center gap-1"
-                    aria-label="Cancel editing"
+                    aria-label="Editing cancel karo"
                   >
                     <X size={16} /> Cancel
                   </Button>
@@ -525,7 +617,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-1"
-                  aria-label="Edit story"
+                  aria-label="Story edit karo"
                 >
                   <Edit size={16} /> Edit
                 </Button>
