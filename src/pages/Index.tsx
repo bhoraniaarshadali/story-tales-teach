@@ -155,23 +155,24 @@ const Index = () => {
   return (
     <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
       ? 'bg-gradient-to-b from-gray-900 to-gray-800 text-white'
-      : 'bg-gradient-to-b from-blue-50 to-violet-50'
+      : 'bg-gradient-to-b from-blue-50 to-indigo-100'
       }`}>
       <AnimatedCursor />
 
+      {/* Enhanced Background Elements */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className={`absolute top-1/4 left-1/6 w-96 h-96 rounded-full 
           ${theme === 'dark' ? 'bg-purple-700' : 'bg-pink-300'} 
-          opacity-10 blur-3xl`}></div>
+          opacity-20 blur-3xl animate-pulse-slow`}></div>
         <div className={`absolute bottom-1/3 right-1/5 w-64 h-64 rounded-full 
           ${theme === 'dark' ? 'bg-blue-700' : 'bg-indigo-300'} 
-          opacity-10 blur-3xl`}></div>
+          opacity-20 blur-3xl animate-float`}></div>
+        <div className={`absolute top-2/3 left-1/3 w-80 h-80 rounded-full 
+          ${theme === 'dark' ? 'bg-teal-700' : 'bg-violet-200'} 
+          opacity-10 blur-3xl animate-pulse-slow delay-2`}></div>
       </div>
 
       <div className="container relative z-10 mx-auto px-4 py-8 max-w-full md:max-w-5xl lg:max-w-6xl">
-        <div className="flex justify-end mb-4">
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-        </div>
 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -192,19 +193,20 @@ const Index = () => {
         </div>
 
         <div className="flex flex-col items-center justify-center">
+          {/* Story Form Container */}
           <motion.div
             ref={formRef}
             initial={{ opacity: 0, y: 30 }}
             animate={formInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className={`w-full max-w-3xl p-6 rounded-2xl shadow-lg backdrop-blur-sm 
+            className={`w-full max-w-3xl p-8 rounded-2xl shadow-lg backdrop-blur-sm 
               ${theme === 'dark'
-                ? 'bg-gray-800/40 border border-gray-700/50'
-                : 'bg-white/60 border border-white/50'}`}
+                ? 'bg-gray-800/60 border border-gray-700/50'
+                : 'bg-white/80 border border-white/50'}`}
           >
             <StoryForm
               onSubmit={handleSubmitTopic}
-              onTopicClick={handleTopicClick} // Pass the navigation callback
+              onTopicClick={handleTopicClick}
               isLoading={isLoading}
               userPreferences={userPreferences}
               onUpdatePreferences={updateUserPreferences}
@@ -214,6 +216,7 @@ const Index = () => {
             />
           </motion.div>
 
+          {/* Loading Spinner */}
           <AnimatePresence mode="wait">
             {isLoading && (
               <motion.div
@@ -233,6 +236,7 @@ const Index = () => {
             )}
           </AnimatePresence>
 
+          {/* Improved Error Message Section - Centered with better styling */}
           <AnimatePresence mode="wait">
             {error && !isLoading && (
               <motion.div
@@ -240,18 +244,66 @@ const Index = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="mt-8 w-full"
+                className="mt-10 w-full max-w-md mx-auto"
               >
-                <ErrorMessage
-                  error={error}
-                  onTryAgain={handleTryAgain}
-                  onClearError={() => setError(null)}
-                  theme={theme}
-                />
+                <div className={`p-8 rounded-2xl shadow-md text-center ${
+                  theme === 'dark' 
+                    ? 'bg-gray-800/80 border border-red-500/30' 
+                    : 'bg-white/90 border border-red-300/50'
+                }`}>
+                  <div className="mx-auto w-20 h-20 mb-4">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center ${
+                      theme === 'dark' ? 'bg-red-900/30' : 'bg-red-100'
+                    }`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-10 w-10 ${
+                        theme === 'dark' ? 'text-red-400' : 'text-red-500'
+                      }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  <h3 className={`text-xl font-bold mb-2 ${
+                    theme === 'dark' ? 'text-red-300' : 'text-red-600'
+                  }`}>
+                    Oops! Something Went Wrong
+                  </h3>
+                  
+                  <p className={`mb-6 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    We couldn't create a story about "{prevTopic}". Please try again or try a different topic.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button 
+                      onClick={handleTryAgain}
+                      className={`px-5 py-2 rounded-lg font-medium transition-colors ${
+                        theme === 'dark' 
+                          ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
+                          : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                      }`}
+                    >
+                      Try Again
+                    </button>
+                    
+                    <button 
+                      onClick={() => setError(null)}
+                      className={`px-5 py-2 rounded-lg font-medium transition-colors ${
+                        theme === 'dark' 
+                          ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                          : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                      }`}
+                    >
+                      Try Another Topic
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
 
+          {/* Story Display */}
           <AnimatePresence>
             {!error && story && (
               <motion.div
@@ -263,8 +315,8 @@ const Index = () => {
                 transition={{ duration: 0.7, ease: "easeOut" }}
                 className={`mt-12 w-full max-w-4xl p-8 rounded-3xl shadow-xl backdrop-blur-sm
                   ${theme === 'dark'
-                    ? 'bg-gray-800/60 border border-gray-700/50'
-                    : 'bg-white/70 border border-white/60'}`}
+                    ? 'bg-gray-800/70 border border-gray-700/50'
+                    : 'bg-white/80 border border-white/60'}`}
               >
                 <StoryDisplay
                   story={story}
@@ -275,6 +327,7 @@ const Index = () => {
             )}
           </AnimatePresence>
 
+          {/* Scroll To Top Button */}
           {story && !error && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -286,6 +339,7 @@ const Index = () => {
           )}
         </div>
 
+        {/* Footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
