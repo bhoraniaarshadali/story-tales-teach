@@ -1,0 +1,113 @@
+
+/* Text size adjustments */
+:root[data-text-size="small"] {
+  --text-multiplier: 0.9;
+}
+
+:root[data-text-size="medium"] {
+  --text-multiplier: 1;
+}
+
+:root[data-text-size="large"] {
+  --text-multiplier: 1.2;
+}
+
+/* Apply text size to common elements */
+body {
+  font-size: calc(1rem * var(--text-multiplier));
+}
+
+h1 {
+  font-size: calc(2.5rem * var(--text-multiplier));
+}
+
+h2 {
+  font-size: calc(2rem * var(--text-multiplier));
+}
+
+h3 {
+  font-size: calc(1.75rem * var(--text-multiplier));
+}
+
+p, li, input, button {
+  font-size: calc(1rem * var(--text-multiplier));
+}
+
+/* Dark mode support */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 262.1 83.3% 57.8%;
+  --primary-foreground: 210 20% 98%;
+  --secondary: 220 14.3% 95.9%;
+  --secondary-foreground: 220.9 39.3% 11%;
+  --muted: 220 14.3% 95.9%;
+  --muted-foreground: 220 8.9% 46.1%;
+  --accent: 262.1 83.3% 97.8%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 262.1 83.3% 57.8%;
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 20% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 20% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 20% 98%;
+  --primary: 262.1 83.3% 57.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 20% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 262.1 83.3% 57.8%;
+}
+
+/* Accessibility focus styles */
+*:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Screen reader utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  h1 {
+    font-size: calc(2rem * var(--text-multiplier));
+  }
+  
+  h2 {
+    font-size: calc(1.75rem * var(--text-multiplier));
+  }
+  
+  h3 {
+    font-size: calc(1.5rem * var(--text-multiplier));
+  }
+}
