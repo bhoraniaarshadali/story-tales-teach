@@ -8,6 +8,7 @@ import { type Story } from "../pages/Index";
 import { useAccessibility } from "../contexts/AccessibilityContext";
 import AudioNarration from "./AudioNarration";
 import ReactMarkdown from "react-markdown";
+import { ChatLayout, ChatBubble } from "./ui/ChatLayout";
 
 interface StoryDisplayProps {
   story: Story | null;
@@ -38,7 +39,93 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) 
 
   return (
     <div className="w-full max-w-3xl mx-auto mt-8">
-      <Card className="p-6 shadow-lg border-primary/20 bg-card">
+      <div className="lg:hidden">
+        {/* Mobile Chat Layout */}
+        <ChatLayout>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-primary">{story.title}</h2>
+            {onToggleFavorite && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleFavorite}
+                aria-label={story.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart className={`h-5 w-5 ${story.isFavorite ? "fill-rose-500 text-rose-500" : ""}`} />
+              </Button>
+            )}
+          </div>
+
+          <ChatBubble
+            content={
+              <div className="flex flex-col gap-2">
+                {emotionsArray.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {emotionsArray.map((emotion, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {emotion}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className={`prose prose-purple max-w-none ${textSizeClasses[textSize]}`}>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="text-current">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    }}
+                  >
+                    {story.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            }
+            avatarFallback={story.character?.emoji || "📚"}
+          />
+
+          <ChatBubble
+            content={
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-amber-500" />
+                  <span className="font-semibold">Learning Takeaway</span>
+                </div>
+                <p className={`${textSizeClasses[textSize]}`}>{story.takeaway}</p>
+              </div>
+            }
+            avatarFallback="💡"
+          />
+
+          {story.keyPoints && story.keyPoints.length > 0 && (
+            <ChatBubble
+              content={
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Book className="h-4 w-4" />
+                    <span className="font-semibold">Key Points</span>
+                  </div>
+                  <ul className={`list-disc list-inside space-y-1 ${textSizeClasses[textSize]}`}>
+                    {story.keyPoints.map((point, index) => (
+                      <li key={index}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              }
+              avatarFallback="📝"
+            />
+          )}
+
+          <div className="mt-4">
+            <AudioNarration
+              text={story.content}
+              characterName={story.character?.name}
+            />
+          </div>
+        </ChatLayout>
+      </div>
+
+      {/* Desktop Card Layout */}
+      <Card className="p-6 shadow-lg border-primary/20 bg-card hidden lg:block">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-12 w-12 border-2 border-accent">

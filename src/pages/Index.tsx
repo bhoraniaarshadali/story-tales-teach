@@ -30,9 +30,53 @@ const Index = () => {
   } = useStoryManager();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-8 sm:py-12">
+    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background">
       <AnimatedCursor />
-      <div className="container mx-auto px-2 sm:px-4">
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden flex flex-col min-h-screen">
+        <div className="flex-none">
+          <PageHeader
+            stories={storyHistory}
+            onViewStory={viewHistoryStory}
+            onToggleFavorite={toggleFavorite}
+            onClearHistory={clearHistory}
+          />
+        </div>
+
+        <div className="flex-1 overflow-y-auto pb-[120px]">
+          {isLoading && (
+            <div className="mt-4 text-center">
+              <LoadingSpinner />
+              <p className="mt-2 text-muted-foreground animate-pulse">
+                Generating your story about {prevTopic}...
+              </p>
+            </div>
+          )}
+
+          {error && !isLoading && (
+            <ErrorMessage
+              error={error}
+              onTryAgain={handleTryAgain}
+              onClearError={() => setError(null)}
+            />
+          )}
+
+          {!error && story && (
+            <StoryDisplay
+              story={story}
+              onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
+            />
+          )}
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border">
+          <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:block container mx-auto px-4 py-8">
         <PageHeader
           stories={storyHistory}
           onViewStory={viewHistoryStory}
@@ -42,7 +86,7 @@ const Index = () => {
 
         <SessionTimer />
 
-        <div className="flex flex-col items-center justify-center gap-4 sm:gap-8">
+        <div className="flex flex-col items-center justify-center gap-8">
           <StoryForm onSubmit={handleSubmitTopic} isLoading={isLoading} />
 
           {isLoading && (
@@ -62,7 +106,7 @@ const Index = () => {
             />
           )}
 
-          {!error && (
+          {!error && story && (
             <StoryDisplay
               story={story}
               onToggleFavorite={story?.id ? () => toggleFavorite(story.id) : undefined}
