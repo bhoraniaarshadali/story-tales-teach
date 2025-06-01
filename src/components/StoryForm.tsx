@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, Settings, UserCircle, Info } from "lucide-react";
+import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, UserCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -27,12 +27,15 @@ const StoryForm: React.FC<StoryFormProps> = ({
   isLoading,
   error,
   invalidTopicResponse,
-  userPreferences,
+  userPreferences = null,
   onUpdatePreferences,
   retryCount = 0
 }) => {
   const [topic, setTopic] = useState("");
-  const [usePersonalization, setUsePersonalization] = useState(true);
+  const [usePersonalization, setUsePersonalization] = useState(
+    userPreferences?.usePersonalization ?? true
+  );
+
   const popularTopics = [
     "Artificial Intelligence",
     "Docker",
@@ -42,20 +45,27 @@ const StoryForm: React.FC<StoryFormProps> = ({
     "Android Activity"
   ];
 
+  // Sync personalization state when userPreferences changes
+  useEffect(() => {
+    if (userPreferences?.usePersonalization !== undefined) {
+      setUsePersonalization(userPreferences.usePersonalization);
+    }
+  }, [userPreferences?.usePersonalization]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim()) {
-      console.log(`Submitting topic "${topic}" with personalization: ${usePersonalization}`);
-      if (usePersonalization && userPreferences) {
-        console.log(`User preferences: ${JSON.stringify(userPreferences)}`);
-      }
+      console.log('Submitting with:', {
+        topic,
+        usePersonalization,
+        preferences: userPreferences
+      });
       onSubmit(topic, usePersonalization);
     }
   };
 
   const handleTopicClick = (selectedTopic: string) => {
     setTopic(selectedTopic);
-    console.log(`Selected preset topic "${selectedTopic}" with personalization: ${usePersonalization}`);
     onSubmit(selectedTopic, usePersonalization);
   };
 
@@ -69,14 +79,21 @@ const StoryForm: React.FC<StoryFormProps> = ({
     setTopic(suggestedTopic);
     onSubmit(suggestedTopic, usePersonalization);
   };
-  
+
   const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
-    if (onUpdatePreferences && userPreferences) {
-      console.log(`Updating preference: ${key} = ${value}`);
-      onUpdatePreferences({
-        ...userPreferences,
-        [key]: value
-      });
+    const updatedPreferences = {
+      ...(userPreferences || {}),
+      [key]: value
+    };
+
+    // Update local state for usePersonalization to ensure immediate UI response
+    if (key === 'usePersonalization') {
+      setUsePersonalization(value);
+    }
+
+    if (onUpdatePreferences) {
+      console.log('Updating preferences:', updatedPreferences);
+      onUpdatePreferences(updatedPreferences);
     }
   };
 
@@ -92,24 +109,10 @@ const StoryForm: React.FC<StoryFormProps> = ({
             Enter any topic and get a fun Hinglish story that explains it
           </p>
         </div>
-        
+
         <div className="flex space-x-2">
-          {/* Model Information */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  Stories are generated using AI models that have been optimized for educational content.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           
+
           {/* Personalization Settings */}
           <Popover>
             <PopoverTrigger asChild>
@@ -120,17 +123,17 @@ const StoryForm: React.FC<StoryFormProps> = ({
             <PopoverContent className="w-80 p-4">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Personalization Settings</h3>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="use-personalization" className="text-sm">Use personalization</Label>
-                    <Switch 
-                      id="use-personalization" 
+                    <Switch
+                      id="use-personalization"
                       checked={usePersonalization}
-                      onCheckedChange={setUsePersonalization}
+                      onCheckedChange={(checked) => handlePreferenceChange('usePersonalization', checked)}
                     />
                   </div>
-                  
+
                   {userPreferences?.previousTopics?.length ? (
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Previous topics</Label>
@@ -143,7 +146,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                       </div>
                     </div>
                   ) : null}
-                  
+
                   {userPreferences?.favoriteTopics?.length ? (
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Favorite topics</Label>
@@ -157,11 +160,11 @@ const StoryForm: React.FC<StoryFormProps> = ({
                     </div>
                   ) : null}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="reading-level">Reading Level</Label>
-                  <Select 
-                    value={userPreferences?.readingLevel || 'intermediate'} 
+                  <Select
+                    value={userPreferences?.readingLevel || 'intermediate'}
                     onValueChange={(value) => handlePreferenceChange('readingLevel', value)}
                   >
                     <SelectTrigger id="reading-level">
@@ -174,11 +177,11 @@ const StoryForm: React.FC<StoryFormProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="language-preference">Language Style</Label>
-                  <Select 
-                    value={userPreferences?.languagePreference || 'hinglish'} 
+                  <Select
+                    value={userPreferences?.languagePreference || 'hinglish'}
                     onValueChange={(value) => handlePreferenceChange('languagePreference', value)}
                   >
                     <SelectTrigger id="language-preference">
@@ -191,11 +194,11 @@ const StoryForm: React.FC<StoryFormProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="learning-style">Learning Style</Label>
-                  <Select 
-                    value={userPreferences?.learningStyle || 'reading'} 
+                  <Select
+                    value={userPreferences?.learningStyle || 'reading'}
                     onValueChange={(value) => handlePreferenceChange('learningStyle', value)}
                   >
                     <SelectTrigger id="learning-style">
@@ -272,7 +275,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
             Having trouble generating stories
           </AlertTitle>
           <AlertDescription>
-            We're experiencing some technical difficulties. If your story doesn't look right, 
+            We're experiencing some technical difficulties. If your story doesn't look right,
             try again later or with a different topic.
           </AlertDescription>
         </Alert>
@@ -300,7 +303,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              Generate {usePersonalization && userPreferences ? "Personalized" : ""} Learning Story
+              Generate {usePersonalization ? "Personalized" : ""} Learning Story
             </>
           )}
         </Button>
