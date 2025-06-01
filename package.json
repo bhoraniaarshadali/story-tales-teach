@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fontsource/caveat": "^5.2.5",
+    "@google-cloud/text-to-speech": "^6.1.0",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -47,8 +48,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "cors": "^2.8.5",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "express": "^5.1.0",
     "framer-motion": "^12.9.2",
     "gsap": "^3.12.7",
     "input-otp": "^1.2.4",
@@ -89,5 +92,18 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.19"
-  }
+  },
+  "description": "1. [Overview](#overview) 2. [Project Structure](#project-structure) 3. [Key Features](#key-features) 4. [Frontend Architecture](#frontend-architecture) 5. [Backend Architecture](#backend-architecture) 6. [Data Flow](#data-flow) 7. [Integration with AI Services](#integration-with-ai-services) 8. [Technical Implementation](#technical-implementation) 9. [Future Enhancements](#future-enhancements) 10. [References](#references)",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhoraniaarshadali/story-tales-teach.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bhoraniaarshadali/story-tales-teach/issues"
+  },
+  "homepage": "https://github.com/bhoraniaarshadali/story-tales-teach#readme"
 }

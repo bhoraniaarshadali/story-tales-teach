@@ -20,12 +20,13 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@/components/ui/sheet";
-import { Trash2, Settings, HistoryIcon, LinkIcon } from "lucide-react";
+import { Trash2, Settings, HistoryIcon, LinkIcon, Type, ChevronRight } from "lucide-react";
 import { Story } from "../pages/Index";
 import StoryHistory from "./StoryHistory";
 import { useAccessibility } from "../contexts/AccessibilityContext";
 import { ScrollArea } from "./ui/scroll-area";
 import { useIsMobile } from "../hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface SettingsDrawerProps {
   stories: Story[];
@@ -45,102 +46,138 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 
   const SettingsContent = () => (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-2">Display Settings</h3>
-        <div className="space-y-2">
-          <div className="flex flex-col gap-2">
-            <span>Text Size</span>
-            <div className="flex gap-2">
-              <Button
-                variant={textSize === "small" ? "default" : "outline"}
-                onClick={() => setTextSize("small")}
-                className="flex-1"
-              >
-                Small
-              </Button>
-              <Button
-                variant={textSize === "medium" ? "default" : "outline"}
-                onClick={() => setTextSize("medium")}
-                className="flex-1"
-              >
-                Medium
-              </Button>
-              <Button
-                variant={textSize === "large" ? "default" : "outline"}
-                onClick={() => setTextSize("large")}
-                className="flex-1"
-              >
-                Large
-              </Button>
+      {/* Display Settings Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Type className="h-4 w-4 text-primary" />
             </div>
+            <h3 className="text-base font-medium">Text Size</h3>
           </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <Button
+            variant={textSize === "small" ? "default" : "outline"}
+            onClick={() => setTextSize("small")}
+            className={cn(
+              "h-8 text-xs",
+              textSize === "small" && "bg-primary text-primary-foreground"
+            )}
+          >
+            Small
+          </Button>
+          <Button
+            variant={textSize === "medium" ? "default" : "outline"}
+            onClick={() => setTextSize("medium")}
+            className={cn(
+              "h-8 text-xs",
+              textSize === "medium" && "bg-primary text-primary-foreground"
+            )}
+          >
+            Medium
+          </Button>
+          <Button
+            variant={textSize === "large" ? "default" : "outline"}
+            onClick={() => setTextSize("large")}
+            className={cn(
+              "h-8 text-xs",
+              textSize === "large" && "bg-primary text-primary-foreground"
+            )}
+          >
+            Large
+          </Button>
         </div>
       </div>
 
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium flex items-center">
-            <HistoryIcon className="h-5 w-5 mr-2" />
-            Story History
-          </h3>
-
+      {/* Story History Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <HistoryIcon className="h-4 w-4 text-primary" />
+            </div>
+            <h3 className="text-base font-medium">Story History</h3>
+          </div>
           {stories.length > 0 && (
             <Button
-              variant="destructive"
+              variant="ghost"
               size="sm"
               onClick={onClearHistory}
-              className="flex items-center"
+              className="h-8 px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear History
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Clear
             </Button>
           )}
         </div>
 
-        <StoryHistory
-          stories={stories}
-          onViewStory={onViewStory}
-          onToggleFavorite={onToggleFavorite}
-        />
+        <div className="bg-muted/50 rounded-lg p-0.5">
+          <StoryHistory
+            stories={stories}
+            onViewStory={onViewStory}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-medium flex items-center mb-2">
-          <LinkIcon className="h-5 w-5 mr-2" />
-          About
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Idea by: <a href="https://www.linkedin.com/in/arshad-ali-bhorania/" target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">Arshad ali Bhorania</a>
-        </p>
+      {/* About Section */}
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 p-2 rounded-full">
+            <LinkIcon className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-base font-medium">About</h3>
+        </div>
+        <div className="pl-10">
+          <p className="text-xs text-muted-foreground">
+            Idea by:{" "}
+            <a
+              href="https://www.linkedin.com/in/arshad-ali-bhorania/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline underline-offset-4"
+            >
+              Arshad ali Bhorania
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
 
-  // Use Sheet for desktop and Drawer for mobile
+  // Mobile Drawer
   if (isMobile) {
     return (
       <Drawer>
         <DrawerTrigger asChild>
-          <Button variant="outline" size="icon">
-            <Settings className="h-5 w-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" />
             <span className="sr-only">Settings</span>
           </Button>
         </DrawerTrigger>
         <DrawerContent className="max-h-[90vh]">
-          <DrawerHeader>
-            <DrawerTitle>Settings</DrawerTitle>
-            <DrawerDescription>
-              Adjust your preferences and manage your story history
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-lg">Settings</DrawerTitle>
+            <DrawerDescription className="text-xs text-muted-foreground">
+              Customize your learning experience
             </DrawerDescription>
           </DrawerHeader>
 
-          <ScrollArea className="h-[70vh] px-4">
+          <ScrollArea className="flex-1 px-4 pb-6">
             <SettingsContent />
           </ScrollArea>
 
-          <DrawerFooter>
+          <DrawerFooter className="pt-2">
             <DrawerClose asChild>
-              <Button variant="outline">Close</Button>
+              <Button variant="outline" className="h-9 text-sm">
+                Done
+              </Button>
             </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
@@ -148,6 +185,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
     );
   }
 
+  // Desktop Sheet
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -156,7 +194,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
           <span className="sr-only">Settings</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-[400px] sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>

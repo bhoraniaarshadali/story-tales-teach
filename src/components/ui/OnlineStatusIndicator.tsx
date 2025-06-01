@@ -1,30 +1,19 @@
 import React from "react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
-const dotStyles = {
-    base: "inline-block w-3 h-3 rounded-full mr-2 border-2 border-white shadow",
-    online: "bg-green-500",
-    offline: "bg-gray-400",
-};
-
 const OnlineStatusIndicator: React.FC = () => {
     const isOnline = useOnlineStatus();
+
     return (
-        <div
-            className="flex items-center text-xs font-medium select-none"
-            title={isOnline ? "You are online" : "You are offline"}
-            aria-label={isOnline ? "Online" : "Offline"}
-        >
-            <span
-                className={
-                    dotStyles.base + " " + (isOnline ? dotStyles.online : dotStyles.offline)
-                }
-            />
-            <span className={isOnline ? "text-green-600" : "text-gray-500"}>
-                {isOnline ? "Online" : "Offline"}
+        <div className="flex items-center gap-1.5 text-sm">
+            <div className={`h-2.5 w-2.5 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_6px_1px_rgba(34,197,94,0.4)]' : 'bg-gray-400'
+                }`} />
+            <span className={`font-medium ${isOnline ? 'text-green-600' : 'text-gray-600'
+                }`}>
+                {isOnline ? 'Online' : 'Offline'}
             </span>
         </div>
     );
 };
 
-export default OnlineStatusIndicator; 
+export default OnlineStatusIndicator;
