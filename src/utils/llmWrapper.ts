@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Story } from '@/hooks/useStoryManager';
 
@@ -30,6 +31,54 @@ export const generateStory = async (topic: string, preferences: any = {}): Promi
     console.error('Error generating story:', err);
     throw new Error(err.message || 'Failed to generate story');
   }
+};
+
+/**
+ * Store story in database
+ */
+export const storeStoryInDatabase = async (story: {
+  title: string;
+  content: string;
+  takeaway: string;
+  topic: string;
+  is_public: boolean;
+}) => {
+  const { data, error } = await supabase
+    .from('stories')
+    .insert([story]);
+
+  if (error) {
+    console.error('Error storing story:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+/**
+ * Fetch stories from database
+ */
+export const fetchStories = async (options: { limit?: number; isPublic?: boolean } = {}) => {
+  const { limit = 50, isPublic = false } = options;
+  
+  let query = supabase
+    .from('stories')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (isPublic !== undefined) {
+    query = query.eq('is_public', isPublic);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching stories:', error);
+    throw error;
+  }
+
+  return data;
 };
 
 /**
@@ -172,7 +221,7 @@ export const generateEnhancedStory = async (
       return {
         ...result,
         metadata: {
-          ...result.metadata,
+          ...(result.metadata || {}),
           provider: provider,
           providerName: LLM_PROVIDERS[provider].name,
           generatedAt: new Date().toISOString()

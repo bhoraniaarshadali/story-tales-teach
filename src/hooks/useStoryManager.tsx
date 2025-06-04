@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
-import { generateStory, UserPreferences, type StoryResponse } from "../services/storyService";
+import { generateEnhancedStory, analyzePopularTopics } from "../utils/llmWrapper";
 import { supabase } from "@/integrations/supabase/client";
-import { storeStoryInDatabase, fetchStories } from "../utils/llmWrapper";
 import { toast } from "sonner";
+
+export interface UserPreferences {
+  language?: 'english' | 'hindi' | 'hinglish';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  storyType?: 'adventure' | 'mystery' | 'educational' | 'funny' | 'inspirational';
+  characterName?: string;
+  previousTopics?: string[];
+  favoriteTopics?: string[];
+}
 
 export interface Story {
   title: string;
@@ -26,6 +34,11 @@ export interface Story {
   qualityWarning?: boolean;
   likes?: number;
   dislikes?: number;
+  metadata?: {
+    provider?: string;
+    providerName?: string;
+    generatedAt?: string;
+  };
 }
 
 export const useStoryManager = () => {
@@ -207,7 +220,7 @@ export const useStoryManager = () => {
         console.log("Sending preferences to API:", JSON.stringify(preferences));
       }
       
-      const generatedStory = await generateStory(topic, preferences);
+      const generatedStory = await generateEnhancedStory(topic, preferences);
 
       // Verify that the story is actually about the requested topic
       if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase()) && generatedStory.title.toLowerCase().includes("Oops!")) {

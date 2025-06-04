@@ -1,8 +1,19 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { generateStoryWithLLM } from "../utils/llmWrapper";
+import { generateEnhancedStory } from '../utils/llmWrapper';
 
-interface StoryResponse {
+export interface UserPreferences {
+  language?: 'english' | 'hindi' | 'hinglish';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  storyType?: 'adventure' | 'mystery' | 'educational' | 'funny' | 'inspirational';
+  characterName?: string;
+  previousTopics?: string[];
+  favoriteTopics?: string[];
+  languagePreference?: string;
+  readingLevel?: string;
+  ageGroup?: string;
+}
+
+export interface StoryResponse {
   title: string;
   content: string;
   takeaway: string;
@@ -11,129 +22,56 @@ interface StoryResponse {
     emoji: string;
     traits?: string;
   };
-  emotions?: string[] | string;
+  emotions?: string[];
   keyPoints?: string[];
-  topic?: string;
-  error?: string;
-  suggestedTopic?: string;
   difficulty?: string;
   personalizedFor?: string[];
   retryCount?: number;
   usedFallbackModel?: boolean;
   qualityWarning?: boolean;
+  metadata?: {
+    provider?: string;
+    providerName?: string;
+    generatedAt?: string;
+  };
 }
 
-export interface UserPreferences {
-  readingLevel?: 'beginner' | 'intermediate' | 'advanced';
-  interests?: string[];
-  languagePreference?: 'english' | 'hinglish' | 'hindi';
-  ageGroup?: 'kids' | 'teen' | 'adult';
-  learningStyle?: 'visual' | 'auditory' | 'reading' | 'kinesthetic';
-  favoriteTopics?: string[];
-  previousTopics?: string[];
-}
-
-export const generateStory = async (topic: string, userPreferences?: UserPreferences): Promise<StoryResponse> => {
+/**
+ * Generates a story using the enhanced LLM wrapper
+ * @param topic The topic of the story
+ * @param preferences User preferences for the story
+ * @returns A promise that resolves to a StoryResponse object
+ */
+export const generateStory = async (topic: string, preferences?: UserPreferences): Promise<StoryResponse> => {
   try {
-    // Input validation
-    if (!topic || topic.trim().length < 2) {
-      throw new Error("Please provide a valid topic with at least 2 characters");
+    console.log(`🎯 Generating story for topic: "${topic}"`);
+    
+    if (preferences) {
+      console.log("📊 Using preferences:", JSON.stringify(preferences));
     }
 
-    console.log(`Sending topic to generate-story function: "${topic}"${userPreferences ? " with personalization" : ""}`);
-    if (userPreferences) {
-      console.log("User preferences:", JSON.stringify(userPreferences));
+    // Use the enhanced story generation with provider selection
+    const result = await generateEnhancedStory(topic, preferences, 'gemini');
+
+    if (!result) {
+      throw new Error('No story generated');
     }
 
-    // Use the platform-agnostic wrapper instead of directly calling Supabase function
-    const data = await generateStoryWithLLM(topic, userPreferences, {
-      // Default to openrouter but can be changed based on configuration
-      provider: "openrouter",
-      temperature: 0.7,
-      maxTokens: 2000
-    });
+    console.log(`✅ Story generated successfully: "${result.title}"`);
+    return result as StoryResponse;
 
-    // Make sure we have valid data before returning
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid response from generate-story function');
-    }
-
-    // Check if the response contains an error message
-    if (data.error) {
-      console.error('Error in response data:', data.error);
-      throw new Error(data.error || 'Story generation failed');
-    }
-
-    // Special case: Check if this is actually an invalid topic response formatted as a story
-    // We can detect this by looking at the title which typically starts with "Oops!" for invalid topics
-    if (data.title && (data.title.includes("Oops!") || data.title.includes("Confusing"))) {
-      console.log('Received invalid topic response:', data);
-      // We'll actually return this as a valid response, and the UI will handle it specially
-      return data as StoryResponse;
-    }
-
-    // Validate that data has the required fields
-    if (!data.title || !data.content || !data.takeaway) {
-      console.error('Missing required fields in response:', data);
-      throw new Error('Story generation response is missing required fields');
-    }
-
-    // Normalize emotions to ensure it's an array
-    if (data.emotions && typeof data.emotions === 'string') {
-      data.emotions = data.emotions.split(',').map(emotion => emotion.trim());
-    }
-
-    // Enhanced validation - check if the content actually explains the topic
-    if (!contentExplainsTopic(data, topic)) {
-      console.error('Generated story does not properly explain the requested topic:', data);
-      // Instead of throwing an error, we'll return the story anyway and let the user decide
-      console.warn(`Note: Story may not properly explain ${topic}, but returning it anyway`);
-    }
-
-    // Ensure the topic is correctly included in the response
-    if (!data.topic) {
-      data.topic = topic;
-    }
-
-    return data as StoryResponse;
-  } catch (error) {
-    console.error('Error generating story:', error);
-    // Instead of generating a fallback story, we'll throw the error
-    // to let the component handle it with a retry message
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error in story generation:', error);
+    
+    // Return a fallback error story instead of throwing
+    return {
+      title: "Oops! Something went wrong",
+      content: `We encountered an issue while creating your story about "${topic}". Please try again with a different topic or check your internet connection.`,
+      takeaway: "Sometimes technology needs a little patience. Don't give up on your learning journey!",
+      retryCount: 1,
+      qualityWarning: true
+    };
   }
 };
 
-// Enhanced check if the topic is actually explained in the content
-function contentExplainsTopic(story: any, topic: string): boolean {
-  const topicLowerCase = topic.toLowerCase();
-
-  // If no content is present, it doesn't explain the topic
-  if (!story.content) {
-    return false;
-  }
-
-  // 1. Check that the topic is mentioned enough times in the content (at least 3 times)
-  const contentMentionsCount = (story.content?.toLowerCase().match(new RegExp(topicLowerCase, 'g')) || []).length;
-
-  // 2. Check that key sections contain the topic
-  const titleHasTopic = story.title?.toLowerCase().includes(topicLowerCase);
-  const contentHasTopic = story.content?.toLowerCase().includes(topicLowerCase);
-  const takeawayHasTopic = story.takeaway?.toLowerCase().includes(topicLowerCase);
-  const keyPointsHaveTopic = story.keyPoints?.some((point: string) =>
-    point.toLowerCase().includes(topicLowerCase)
-  );
-
-  const sectionsWithTopic = [
-    titleHasTopic,
-    contentHasTopic,
-    takeawayHasTopic,
-    keyPointsHaveTopic
-  ].filter(Boolean).length;
-
-  // Story should mention the topic at least 3 times and in at least 3 different sections
-  return contentMentionsCount >= 3 && sectionsWithTopic >= 2; // Relaxed validation slightly
-}
-
-// Export the type for other files to use
-export type { StoryResponse };
+export { type UserPreferences as UserPreferences };

@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 interface StoryFormProps {
   onSubmit: (topic: string) => void;
   isLoading: boolean;
-  userPreferences?: UserPreferences;
+  userPreferences?: UserPreferences | null;
   onUpdatePreferences: (preferences: Partial<UserPreferences>) => void;
   retryCount: number;
   popularTopics: { topic: string; count: number }[];
@@ -35,7 +35,7 @@ interface StoryFormProps {
 const StoryForm: React.FC<StoryFormProps> = ({
   onSubmit,
   isLoading,
-  userPreferences = {},
+  userPreferences,
   onUpdatePreferences,
   retryCount,
   popularTopics = []
@@ -43,6 +43,9 @@ const StoryForm: React.FC<StoryFormProps> = ({
   const [topic, setTopic] = useState("");
   const [isPersonalizeOpen, setIsPersonalizeOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Provide default preferences if null
+  const safePreferences = userPreferences || {};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +179,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                               onClick={() => onUpdatePreferences({ language: lang.value as any })}
                               className={cn(
                                 "p-4 rounded-xl border transition-all text-left",
-                                userPreferences.language === lang.value
+                                safePreferences.language === lang.value
                                   ? "bg-purple-500/30 border-purple-400 text-white"
                                   : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
                               )}
@@ -205,7 +208,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                               onClick={() => onUpdatePreferences({ difficulty: diff.value as any })}
                               className={cn(
                                 "p-4 rounded-xl border transition-all text-left",
-                                userPreferences.difficulty === diff.value
+                                safePreferences.difficulty === diff.value
                                   ? "bg-green-500/30 border-green-400 text-white"
                                   : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
                               )}
@@ -234,7 +237,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                               onClick={() => onUpdatePreferences({ storyType: type.value as any })}
                               className={cn(
                                 "p-3 rounded-xl border transition-all text-center",
-                                userPreferences.storyType === type.value
+                                safePreferences.storyType === type.value
                                   ? "bg-yellow-500/30 border-yellow-400 text-white"
                                   : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
                               )}
@@ -256,7 +259,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
                         </label>
                         <Input
                           type="text"
-                          value={userPreferences.characterName || ""}
+                          value={safePreferences.characterName || ""}
                           onChange={(e) => onUpdatePreferences({ characterName: e.target.value })}
                           placeholder="Enter a character name for your story..."
                           className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
