@@ -1,5 +1,9 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { LogOut, User } from "lucide-react";
+import { useAuth } from "../auth/hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
@@ -19,6 +23,7 @@ import { analyzePopularTopics } from "../utils/llmWrapper";
 export type { Story } from "../hooks/useStoryManager";
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
@@ -121,8 +126,34 @@ const Index = () => {
     }
   }, [location.pathname, initialLoadComplete, storyHistory, viewHistoryStory, story]);
 
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  }, [signOut]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-accent/50 to-background py-6 md:py-12">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* User menu for authenticated users */}
+      <div className="absolute top-4 right-4 z-50">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            Welcome, {user?.name || user?.email}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSignOut}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
+      </div>
+
       <AnimatedCursor />
       <div className="container mx-auto px-4 max-w-full md:max-w-4xl lg:max-w-5xl">
         <PageHeader

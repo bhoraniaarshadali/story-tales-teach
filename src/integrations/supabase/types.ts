@@ -35,43 +35,55 @@ export type Database = {
       }
       stories: {
         Row: {
-          content: string
+          character: Json | null
+          content: string | null
           created_at: string | null
+          difficulty: string | null
           dislikes: number | null
+          emotions: string[] | null
           id: string
+          is_favorite: boolean | null
           is_public: boolean | null
+          key_points: string[] | null
           likes: number | null
           takeaway: string | null
-          title: string
+          title: string | null
           topic: string | null
           updated_at: string | null
-          user_id: string | null
         }
         Insert: {
-          content: string
+          character?: Json | null
+          content?: string | null
           created_at?: string | null
+          difficulty?: string | null
           dislikes?: number | null
+          emotions?: string[] | null
           id?: string
+          is_favorite?: boolean | null
           is_public?: boolean | null
+          key_points?: string[] | null
           likes?: number | null
           takeaway?: string | null
-          title: string
+          title?: string | null
           topic?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Update: {
-          content?: string
+          character?: Json | null
+          content?: string | null
           created_at?: string | null
+          difficulty?: string | null
           dislikes?: number | null
+          emotions?: string[] | null
           id?: string
+          is_favorite?: boolean | null
           is_public?: boolean | null
+          key_points?: string[] | null
           likes?: number | null
           takeaway?: string | null
-          title?: string
+          title?: string | null
           topic?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
