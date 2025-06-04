@@ -1,3 +1,4 @@
+
 import { generateEnhancedStory } from '../utils/llmWrapper';
 
 export interface UserPreferences {
@@ -72,5 +73,3 @@ export const generateStory = async (topic: string, preferences?: UserPreferences
     };
   }
 };
-
-export { type UserPreferences as UserPreferences };
