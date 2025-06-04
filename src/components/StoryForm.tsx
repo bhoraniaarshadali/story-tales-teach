@@ -1,365 +1,314 @@
 
-// The Switch component doesn't accept a 'size' prop
-// Need to fix line around 168
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserPreferences } from "../services/storyService";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, BookOpen, Settings, ChevronDown, ChevronRight, ArrowRight, TrendingUp, Star, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Sparkles, 
+  Settings, 
+  Wand2, 
+  Brain, 
+  Languages, 
+  User,
+  Star,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { UserPreferences } from "@/hooks/useStoryManager";
+import { cn } from "@/lib/utils";
 
 interface StoryFormProps {
-  onSubmit: (topic: string, usePersonalization?: boolean) => void;
+  onSubmit: (topic: string) => void;
   isLoading: boolean;
+  userPreferences?: UserPreferences;
+  onUpdatePreferences: (preferences: Partial<UserPreferences>) => void;
   retryCount: number;
-  userPreferences?: UserPreferences | null;
-  onUpdatePreferences: (preferences: UserPreferences) => void;
-  popularTopics?: {topic: string, count: number}[];
+  popularTopics: { topic: string; count: number }[];
 }
 
 const StoryForm: React.FC<StoryFormProps> = ({
   onSubmit,
   isLoading,
-  retryCount,
-  userPreferences,
+  userPreferences = {},
   onUpdatePreferences,
+  retryCount,
   popularTopics = []
 }) => {
   const [topic, setTopic] = useState("");
-  const [isPersonalizationEnabled, setIsPersonalizationEnabled] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [language, setLanguage] = useState<"english" | "hinglish" | "hindi">(
-    userPreferences?.languagePreference || "english"
-  );
-  const [readingLevel, setReadingLevel] = useState<"beginner" | "intermediate" | "advanced">(
-    userPreferences?.readingLevel || "intermediate"
-  );
-  const [ageGroup, setAgeGroup] = useState<"kids" | "teen" | "adult">(
-    userPreferences?.ageGroup || "adult"
-  );
-  const [interests, setInterests] = useState<string>(userPreferences?.interests?.join(", ") || "");
-
-  // Load settings from user preferences
-  useEffect(() => {
-    if (userPreferences) {
-      setLanguage(userPreferences.languagePreference || "english");
-      setReadingLevel(userPreferences.readingLevel || "intermediate");
-      setAgeGroup(userPreferences.ageGroup || "adult");
-      setInterests(userPreferences.interests?.join(", ") || "");
-    }
-  }, [userPreferences]);
+  const [isPersonalizeOpen, setIsPersonalizeOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (topic.trim().length > 0) {
-      onSubmit(topic.trim(), isPersonalizationEnabled);
+    if (topic.trim()) {
+      onSubmit(topic.trim());
+      setTopic("");
     }
   };
 
-  const handleTopicSuggestionClick = (suggestion: string) => {
-    setTopic(suggestion);
-    onSubmit(suggestion, isPersonalizationEnabled);
+  const handleTopicClick = (topicName: string) => {
+    setTopic(topicName);
   };
 
-  const handleSaveSettings = () => {
-    const updatedPreferences: UserPreferences = {
-      ...userPreferences,
-      languagePreference: language,
-      readingLevel: readingLevel,
-      ageGroup: ageGroup,
-      interests: interests.split(",").map(i => i.trim()).filter(i => i.length > 0),
-    };
-    
-    onUpdatePreferences(updatedPreferences);
-    setShowSettings(false);
-  };
-
-  const previousTopics = userPreferences?.previousTopics || [];
-  const favoriteTopics = userPreferences?.favoriteTopics || [];
-
-  // Define example topic suggestions if no popular topics are available
-  const exampleSuggestions = [
-    "Quantum Physics",
-    "Indian History",
-    "Machine Learning",
-    "Climate Change",
-    "Solar System"
+  const languages = [
+    { value: "english", label: "English", flag: "🇺🇸" },
+    { value: "hindi", label: "Hindi", flag: "🇮🇳" },
+    { value: "hinglish", label: "Hinglish", flag: "🔄" }
   ];
 
-  // Use popular topics if available, otherwise use example suggestions
-  const topicSuggestions = popularTopics.length > 0 
-    ? popularTopics.slice(0, 5).map(item => item.topic)
-    : exampleSuggestions;
+  const difficulties = [
+    { value: "beginner", label: "Beginner", icon: "🌱" },
+    { value: "intermediate", label: "Intermediate", icon: "📈" },
+    { value: "advanced", label: "Advanced", icon: "🚀" }
+  ];
+
+  const storyTypes = [
+    { value: "adventure", label: "Adventure", icon: "🗺️" },
+    { value: "mystery", label: "Mystery", icon: "🔍" },
+    { value: "educational", label: "Educational", icon: "📚" },
+    { value: "funny", label: "Funny", icon: "😄" },
+    { value: "inspirational", label: "Inspirational", icon: "✨" }
+  ];
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-xl md:text-2xl font-semibold flex items-center gap-2 text-primary">
-              <BookOpen className="h-5 w-5" />
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Main Story Generation Form */}
+      <Card className="bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-sm border border-white/30 shadow-xl">
+        <CardContent className="p-6">
+          <div className="text-center mb-6">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="inline-block mb-4"
+            >
+              <Wand2 className="h-8 w-8 text-purple-400" />
+            </motion.div>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
               Generate a Story
             </h2>
-            <p className="text-muted-foreground mb-4">
-              Enter any topic and let AI create a personalized learning story for you.
+            <p className="text-white/70">
+              Enter any topic and let AI create a personalized learning story for you
             </p>
-          </motion.div>
+          </div>
 
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
               <Input
-                placeholder="Enter any topic you want to learn about..."
+                type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="pr-10 focus-visible:ring-primary"
+                placeholder="Enter any topic you want to learn about..."
+                className="w-full h-14 text-lg bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-sm rounded-xl pr-24"
                 disabled={isLoading}
               />
-              {isLoading && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              className="group min-w-32"
-              disabled={isLoading || topic.trim().length === 0}
-            >
-              {isLoading ? (
-                <>Processing...</>
-              ) : (
-                <>
-                  Generate Story
-                  <Sparkles className="ml-2 h-4 w-4 opacity-70 group-hover:opacity-100 transition-opacity" />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Topics suggestions section */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-medium">Popular Topics</h3>
-            </div>
-            
-            <div className="flex items-center">
-              <Switch
-                checked={isPersonalizationEnabled}
-                onCheckedChange={setIsPersonalizationEnabled}
-                className="h-[20px] w-[36px]" /* Removed size prop and used className to style */
-              />
-              <span className="ml-2 text-xs text-muted-foreground">
-                Personalize
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {topicSuggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => handleTopicSuggestionClick(suggestion)}
-                className="text-xs md:text-sm bg-muted hover:bg-muted/80 text-primary px-3 py-1 rounded-full transition-colors"
-                disabled={isLoading}
+              <Button
+                type="submit"
+                disabled={!topic.trim() || isLoading}
+                className="absolute right-2 top-2 h-10 px-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 rounded-lg"
               >
-                {suggestion}
-              </button>
-            ))}
+                {isLoading ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </motion.div>
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+
+          {/* Personalization Toggle */}
+          <div className="mt-6">
+            <Collapsible open={isPersonalizeOpen} onOpenChange={setIsPersonalizeOpen}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between text-white hover:bg-white/10 p-4 rounded-xl"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-purple-400" />
+                    <span>Personalize Your Story</span>
+                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 border-purple-400/30">
+                      AI Enhanced
+                    </Badge>
+                  </div>
+                  {isPersonalizeOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent className="space-y-6 mt-4">
+                <AnimatePresence>
+                  {isPersonalizeOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-6 p-4 bg-white/5 rounded-xl border border-white/10"
+                    >
+                      {/* Language Selection */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <Languages className="h-4 w-4 text-blue-400" />
+                          Story Language
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {languages.map((lang) => (
+                            <motion.button
+                              key={lang.value}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onUpdatePreferences({ language: lang.value as any })}
+                              className={cn(
+                                "p-4 rounded-xl border transition-all text-left",
+                                userPreferences.language === lang.value
+                                  ? "bg-purple-500/30 border-purple-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{lang.flag}</span>
+                                <span className="font-medium">{lang.label}</span>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Difficulty Level */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <Brain className="h-4 w-4 text-green-400" />
+                          Difficulty Level
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {difficulties.map((diff) => (
+                            <motion.button
+                              key={diff.value}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onUpdatePreferences({ difficulty: diff.value as any })}
+                              className={cn(
+                                "p-4 rounded-xl border transition-all text-left",
+                                userPreferences.difficulty === diff.value
+                                  ? "bg-green-500/30 border-green-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{diff.icon}</span>
+                                <span className="font-medium">{diff.label}</span>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Story Type */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <Star className="h-4 w-4 text-yellow-400" />
+                          Story Type
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                          {storyTypes.map((type) => (
+                            <motion.button
+                              key={type.value}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onUpdatePreferences({ storyType: type.value as any })}
+                              className={cn(
+                                "p-3 rounded-xl border transition-all text-center",
+                                userPreferences.storyType === type.value
+                                  ? "bg-yellow-500/30 border-yellow-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                              )}
+                            >
+                              <div className="space-y-1">
+                                <div className="text-xl">{type.icon}</div>
+                                <div className="text-sm font-medium">{type.label}</div>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Character Name */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <User className="h-4 w-4 text-pink-400" />
+                          Character Name (Optional)
+                        </label>
+                        <Input
+                          type="text"
+                          value={userPreferences.characterName || ""}
+                          onChange={(e) => onUpdatePreferences({ characterName: e.target.value })}
+                          placeholder="Enter a character name for your story..."
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Settings collapsible section */}
-        <Collapsible
-          open={showSettings}
-          onOpenChange={setShowSettings}
-          className="border rounded-lg bg-card/50 backdrop-blur-sm"
+      {/* Popular Topics */}
+      {popularTopics.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
         >
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-4">
-            <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Story Settings</span>
-            </div>
-            {showSettings ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="p-4 pt-0">
-            <div className="border-t pt-4 mt-1 space-y-4">
-              <Tabs defaultValue="preferences" className="w-full">
-                <TabsList className="grid grid-cols-2 mb-4">
-                  <TabsTrigger value="preferences">Story Preferences</TabsTrigger>
-                  <TabsTrigger value="history">Previous Topics</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="preferences" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="language">Language Style</Label>
-                      <Select
-                        value={language}
-                        onValueChange={(value: "english" | "hinglish" | "hindi") => setLanguage(value)}
-                      >
-                        <SelectTrigger id="language">
-                          <SelectValue placeholder="Select language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="english">English</SelectItem>
-                          <SelectItem value="hinglish">Hinglish (Hindi + English)</SelectItem>
-                          <SelectItem value="hindi">Hindi</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="reading-level">Reading Level</Label>
-                      <Select
-                        value={readingLevel}
-                        onValueChange={(value: "beginner" | "intermediate" | "advanced") => setReadingLevel(value)}
-                      >
-                        <SelectTrigger id="reading-level">
-                          <SelectValue placeholder="Select reading level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="beginner">Beginner</SelectItem>
-                          <SelectItem value="intermediate">Intermediate</SelectItem>
-                          <SelectItem value="advanced">Advanced</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="age-group">Age Group</Label>
-                      <Select
-                        value={ageGroup}
-                        onValueChange={(value: "kids" | "teen" | "adult") => setAgeGroup(value)}
-                      >
-                        <SelectTrigger id="age-group">
-                          <SelectValue placeholder="Select age group" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="kids">Children (5-12)</SelectItem>
-                          <SelectItem value="teen">Teen (13-18)</SelectItem>
-                          <SelectItem value="adult">Adult (19+)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="interests">Your Interests</Label>
-                      <Textarea
-                        id="interests"
-                        placeholder="Science, History, Music... (comma separated)"
-                        className="resize-none"
-                        value={interests}
-                        onChange={(e) => setInterests(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Button className="w-full" onClick={handleSaveSettings}>
-                    Save Preferences
-                  </Button>
-                </TabsContent>
-
-                <TabsContent value="history">
-                  <div className="space-y-4">
-                    {favoriteTopics.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-yellow-500" />
-                          Favorite Topics
-                        </Label>
-                        <div className="flex flex-wrap gap-2">
-                          {favoriteTopics.map((topic, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => handleTopicSuggestionClick(topic)}
-                              className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-3 py-1 rounded-full transition-colors"
-                              disabled={isLoading}
-                            >
-                              {topic}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {previousTopics.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-primary" />
-                          Previous Topics
-                        </Label>
-                        <div className="flex flex-wrap gap-2">
-                          {previousTopics.map((topic, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => handleTopicSuggestionClick(topic)}
-                              className="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-full transition-colors"
-                              disabled={isLoading}
-                            >
-                              {topic}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {favoriteTopics.length === 0 && previousTopics.length === 0 && (
-                      <Card className="p-4 text-center text-muted-foreground">
-                        <p>No history yet. Generate stories to see your history.</p>
-                      </Card>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-        
-        {retryCount > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 rounded-md"
-          >
-            Retry attempt #{retryCount}. We're working hard to generate your story!
-          </motion.div>
-        )}
-      </form>
+          <Card className="bg-white/10 backdrop-blur-sm border border-white/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-5 w-5 text-orange-400" />
+                <h3 className="text-lg font-semibold text-white">Popular Topics</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {popularTopics.slice(0, 8).map((popularTopic, index) => (
+                  <motion.div
+                    key={popularTopic.topic}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer bg-white/10 text-white border-white/20 hover:bg-white/20 transition-all duration-200 px-3 py-1"
+                      onClick={() => handleTopicClick(popularTopic.topic)}
+                    >
+                      {popularTopic.topic}
+                      <span className="ml-2 text-xs opacity-70">
+                        {popularTopic.count}
+                      </span>
+                    </Badge>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 };

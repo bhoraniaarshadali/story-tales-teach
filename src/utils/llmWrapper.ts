@@ -1,158 +1,195 @@
+import { supabase } from '@/integrations/supabase/client';
+import { Story } from '@/hooks/useStoryManager';
 
 /**
- * Platform-agnostic LLM wrapper for story generation
- * This allows easy switching between different AI providers (OpenAI, Mixtral, Claude, etc.)
+ * Generates a story using Supabase Edge Functions
+ * @param topic The topic of the story
+ * @param preferences User preferences for the story
+ * @returns A promise that resolves to a Story object
  */
-
-import { supabase } from "@/integrations/supabase/client";
-import { UserPreferences, type StoryResponse } from "../services/storyService";
-
-// Define supported LLM providers
-export type LLMProvider = "openrouter" | "openai" | "mixtral" | "claude" | "anthropic" | "gemini";
-
-// Configuration for LLM calls
-interface LLMConfig {
-  provider: LLMProvider;
-  modelName?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-/**
- * Generate a story using the current LLM provider
- * This function wraps the actual call to the AI service
- */
-export async function generateStoryWithLLM(
-  topic: string,
-  userPreferences?: UserPreferences,
-  config: LLMConfig = { provider: "openrouter" }
-): Promise<StoryResponse> {
-  console.log(`LLM Wrapper: Generating story about "${topic}" using ${config.provider}`);
-  
+export const generateStory = async (topic: string, preferences: any = {}): Promise<Story> => {
   try {
-    // Log the start of story generation with provider info
-    console.log(`Starting story generation with ${config.provider} for topic: ${topic}`);
-    
-    // Call the Supabase Edge Function with user preferences and LLM config
     const { data, error } = await supabase.functions.invoke('generate-story', {
-      body: { 
-        topic: topic.trim(),
-        userPreferences,
-        llmConfig: config
+      body: {
+        topic,
+        preferences
       }
     });
 
     if (error) {
-      console.error('Error from LLM service:', error);
+      console.error('Error invoking Supabase function:', error);
       throw new Error(error.message || 'Failed to generate story');
     }
 
-    // Store the successful story in the database
-    try {
-      await storeStoryInDatabase({
-        title: data.title,
-        content: data.content,
-        takeaway: data.takeaway,
-        topic: topic,
-        is_public: false
-      });
-      console.log('Story successfully stored in database');
-    } catch (dbError) {
-      console.error('Failed to store story in database:', dbError);
-      // Continue with the story generation even if database storage fails
+    if (!data) {
+      throw new Error('No data received from Supabase function');
     }
 
-    return data as StoryResponse;
-  } catch (error) {
-    console.error('Error in generateStoryWithLLM:', error);
-    throw error;
+    return data as Story;
+  } catch (err: any) {
+    console.error('Error generating story:', err);
+    throw new Error(err.message || 'Failed to generate story');
   }
-}
+};
 
 /**
- * Store a generated story in the database
+ * Analyzes popular topics using Supabase Edge Functions
+ * @returns A promise that resolves to an array of popular topics
  */
-export async function storeStoryInDatabase(story: {
-  title: string;
-  content: string;
-  takeaway: string;
-  topic: string;
-  is_public?: boolean;
-}) {
-  const { error } = await supabase.from('stories').insert({
-    title: story.title,
-    content: story.content,
-    takeaway: story.takeaway,
-    topic: story.topic,
-    is_public: story.is_public || false,
-  });
-
-  if (error) {
-    console.error('Error storing story in database:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetch stories from the database with various filtering options
- */
-export async function fetchStories({
-  limit = 10,
-  isPublic = true,
-  orderBy = 'created_at'
-}: {
-  limit?: number;
-  isPublic?: boolean;
-  orderBy?: string;
-} = {}) {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('is_public', isPublic)
-    .order(orderBy, { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('Error fetching stories:', error);
-    throw error;
-  }
-
-  return data;
-}
-
-/**
- * Analyze stories to find popular topics
- */
-export async function analyzePopularTopics() {
+export const analyzePopularTopics = async (): Promise<{topic: string, count: number}[]> => {
   try {
-    const { data, error } = await supabase
-      .from('stories')
-      .select('topic, created_at')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    const { data, error } = await supabase.functions.invoke('analyze-topics', {});
 
     if (error) {
-      console.error('Error analyzing topics:', error);
-      throw error;
+      console.error('Error invoking Supabase function:', error);
+      throw new Error(error.message || 'Failed to analyze topics');
     }
 
-    // Count occurrences of each topic
-    const topicCounts: Record<string, number> = {};
-    data.forEach(story => {
-      if (story.topic) {
-        topicCounts[story.topic] = (topicCounts[story.topic] || 0) + 1;
-      }
-    });
+    if (!data) {
+      throw new Error('No data received from Supabase function');
+    }
 
-    // Sort topics by count
-    const sortedTopics = Object.entries(topicCounts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([topic, count]) => ({ topic, count }));
-
-    return sortedTopics;
-  } catch (error) {
-    console.error('Error in analyzePopularTopics:', error);
-    // Return empty array as fallback
-    return [];
+    return data as {topic: string, count: number}[];
+  } catch (err: any) {
+    console.error('Error analyzing topics:', err);
+    throw new Error(err.message || 'Failed to analyze topics');
   }
-}
+};
+
+/**
+ * Main LLM wrapper function that can easily switch between different AI providers
+ * This implements the architecture pattern requested for easy switching between
+ * OpenAI, Mixtral, Claude, Gemini, or local models
+ */
+export const generateStoryWithLLM = async (
+  topic: string,
+  preferences: any = {},
+  provider: 'gemini' | 'mixtral' | 'openai' | 'claude' | 'local' = 'gemini'
+) => {
+  console.log(`🤖 Generating story with ${provider.toUpperCase()} for topic: "${topic}"`);
+  
+  // For now, we'll use the existing generate-story function
+  // In the future, this can be extended to support multiple providers
+  switch (provider) {
+    case 'gemini':
+    case 'mixtral':
+      // Current implementation using Supabase Edge Function
+      return await generateStory(topic, preferences);
+    
+    case 'openai':
+      // TODO: Implement OpenAI integration
+      console.log('🔄 OpenAI integration coming soon!');
+      return await generateStory(topic, preferences);
+    
+    case 'claude':
+      // TODO: Implement Claude integration
+      console.log('🔄 Claude integration coming soon!');
+      return await generateStory(topic, preferences);
+    
+    case 'local':
+      // TODO: Implement local model integration
+      console.log('🔄 Local model integration coming soon!');
+      return await generateStory(topic, preferences);
+    
+    default:
+      return await generateStory(topic, preferences);
+  }
+};
+
+/**
+ * Configuration object for different LLM providers
+ * This makes it easy to add new providers and configure them
+ */
+export const LLM_PROVIDERS = {
+  gemini: {
+    name: 'Google Gemini',
+    description: 'Advanced AI with multilingual support',
+    available: true,
+    features: ['hindi', 'english', 'hinglish', 'code-generation']
+  },
+  mixtral: {
+    name: 'Mixtral 8x7B',
+    description: 'Open-source multilingual model',
+    available: true,
+    features: ['multilingual', 'fast-inference']
+  },
+  openai: {
+    name: 'OpenAI GPT',
+    description: 'Industry-leading language model',
+    available: false, // Will be true when implemented
+    features: ['creative-writing', 'reasoning']
+  },
+  claude: {
+    name: 'Anthropic Claude',
+    description: 'Constitutional AI with safety focus',
+    available: false, // Will be true when implemented
+    features: ['safety', 'reasoning', 'long-context']
+  },
+  local: {
+    name: 'Local Model',
+    description: 'Privacy-first local inference',
+    available: false, // Will be true when implemented
+    features: ['privacy', 'offline', 'customizable']
+  }
+} as const;
+
+/**
+ * Get available LLM providers
+ */
+export const getAvailableProviders = () => {
+  return Object.entries(LLM_PROVIDERS)
+    .filter(([_, config]) => config.available)
+    .map(([key, config]) => ({ id: key, ...config }));
+};
+
+/**
+ * Validate if a provider is available
+ */
+export const isProviderAvailable = (provider: string): boolean => {
+  return LLM_PROVIDERS[provider as keyof typeof LLM_PROVIDERS]?.available || false;
+};
+
+/**
+ * Enhanced story generation with provider selection
+ * This is the main function that should be used throughout the app
+ */
+export const generateEnhancedStory = async (
+  topic: string,
+  preferences: any = {},
+  selectedProvider?: string
+) => {
+  const provider = selectedProvider && isProviderAvailable(selectedProvider) 
+    ? selectedProvider as keyof typeof LLM_PROVIDERS
+    : 'gemini'; // Default to Gemini
+
+  console.log(`📚 Generating enhanced story using ${LLM_PROVIDERS[provider].name}`);
+  
+  try {
+    const result = await generateStoryWithLLM(topic, preferences, provider);
+    
+    // Add provider metadata to the result
+    if (result && typeof result === 'object') {
+      return {
+        ...result,
+        metadata: {
+          ...result.metadata,
+          provider: provider,
+          providerName: LLM_PROVIDERS[provider].name,
+          generatedAt: new Date().toISOString()
+        }
+      };
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`❌ Error generating story with ${provider}:`, error);
+    
+    // Fallback to default provider if the selected one fails
+    if (provider !== 'gemini') {
+      console.log('🔄 Falling back to Gemini...');
+      return await generateStoryWithLLM(topic, preferences, 'gemini');
+    }
+    
+    throw error;
+  }
+};
