@@ -12,15 +12,13 @@ interface PageHeaderProps {
   onViewStory: (storyId: string) => void;
   onToggleFavorite: (storyId: string) => void;
   onClearHistory: () => void;
-  isMobile?: boolean;
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({
   stories,
   onViewStory,
   onToggleFavorite,
-  onClearHistory,
-  isMobile = false
+  onClearHistory
 }) => {
   const [animateTitle, setAnimateTitle] = useState(false);
   const totalStories = stories.length;
@@ -40,23 +38,6 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   ];
 
   const randomTagline = taglines[Math.floor(Math.random() * taglines.length)];
-
-  // If mobile, render a simplified version
-  if (isMobile) {
-    return (
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <SettingsDrawer
-            stories={stories}
-            onViewStory={onViewStory}
-            onToggleFavorite={onToggleFavorite}
-            onClearHistory={onClearHistory}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <header className="relative py-4 md:py- mb-4 md:mb-0">
