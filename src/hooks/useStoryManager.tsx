@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { generateEnhancedStory, analyzePopularTopics } from "../utils/llmWrapper";
+import { generateEnhancedStory, analyzePopularTopics, fetchStories, storeStoryInDatabase } from "../utils/llmWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
