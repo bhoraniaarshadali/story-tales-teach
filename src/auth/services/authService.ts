@@ -98,7 +98,7 @@ export class AuthService {
 
     return {
       id: profile.id,
-      email: profile.email,
+      email: profile.email || session.user.email!,
       name: profile.name,
       created_at: profile.created_at
     };
