@@ -98,8 +98,8 @@ export class AuthService {
 
     return {
       id: profile.id,
-      email: profile.email || session.user.email!,
-      name: profile.name,
+      email: session.user.email!,
+      name: profile.username || session.user.user_metadata?.name,
       created_at: profile.created_at
     };
   }
