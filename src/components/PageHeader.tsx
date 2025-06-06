@@ -99,7 +99,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         </motion.div>
 
         {/* Library stats badge */}
-        {totalStories > 0 && (
+        {/* {totalStories > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -114,7 +114,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
               )}
             </Badge>
           </motion.div>
-        )}
+        )} */}
       </div>
     </header>
   );

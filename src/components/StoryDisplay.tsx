@@ -161,13 +161,13 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
       );
 
       if (success) {
-        toast.success("Story share ho gayi, bhai!");
+        //toast.success("Story share ho gayi, bhai!");
       } else {
-        toast.error("Share nahi hua, thodi dikkat hai.");
+        //toast.error("Share nahi hua, thodi dikkat hai.");
       }
     } catch (error) {
       console.error(`🛑 Share mein error: ${error}`);
-      toast.error("Share nahi hua, dobara try karo!");
+      //toast.error("Share nahi hua, dobara try karo!");
     } finally {
       setIsSharing(false);
     }
@@ -200,16 +200,16 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
         setUserFeedback(prevFeedbackState);
         setLikes(story.likes || 0);
         setDislikes(story.dislikes || 0);
-        toast.error("Feedback update nahi hua, dobara try karo!");
+        //toast.error("Feedback update nahi hua, dobara try karo!");
       } else {
-        toast.success(type === "like" ? "Like diya, shabaash!" : "Dislike diya, koi baat nahi!");
+        //toast.success(type === "like" ? "Like diya, shabaash!" : "Dislike diya, koi baat nahi!");
       }
     } catch (error) {
       console.error(`🛑 Feedback update mein error: ${error}`);
       setUserFeedback(prevFeedbackState);
       setLikes(story.likes || 0);
       setDislikes(story.dislikes || 0);
-      toast.error("Feedback update nahi hua, thodi dikkat hai!");
+      //toast.error("Feedback update nahi hua, thodi dikkat hai!");
     }
   };
 
@@ -506,7 +506,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Is story ko like karo</p>
+                  <p>Like</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -531,7 +531,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Is story ko dislike karo</p>
+                  <p>Dislike</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -575,13 +575,13 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
                     className="hover:bg-primary/10"
                     onClick={handleShare}
                     disabled={isSharing || !story.id}
-                    aria-label="Is story ko share karo"
+                    aria-label="Share"
                   >
                     <Share2 className={isSharing ? "animate-pulse" : ""} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Is story ko share karo</p>
+                  <p>Share</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

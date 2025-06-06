@@ -297,17 +297,6 @@ const Share = () => {
                 <p className="text-muted-foreground max-w-2xl mx-auto">
                   You're viewing a shared story. Create your own personalized stories by heading back to the home page!
                 </p>
-                <div className="flex justify-center mt-4">
-                  <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12.01" y2="15" />
-                    </svg>
-                    <span>Shared with you</span>
-                  </div>
-                </div>
               </motion.div>
 
               <motion.div

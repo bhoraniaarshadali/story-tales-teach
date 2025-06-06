@@ -167,7 +167,7 @@ const StoryForm: React.FC<StoryFormProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-medium">Popular Topics</h3>
+              <h3 className="text-sm font-medium">Suggested Topics</h3>
             </div>
             
             <div className="flex items-center">

@@ -195,7 +195,7 @@ const StoryHistory: React.FC<StoryHistoryProps> = ({
                       }}
                     >
                       <BookOpen className="h-3 w-3 mr-1" />
-                      Story Dekho
+                      View Story
                     </Button>
                   </div>
                 </div>
