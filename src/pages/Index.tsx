@@ -1,10 +1,8 @@
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Sparkles, Star, BookOpen, TrendingUp } from "lucide-react";
-import { useAuth } from "../auth/hooks/useAuth";
+import { Sparkles, Star, BookOpen, TrendingUp } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import StoryForm from "../components/StoryForm";
 import StoryDisplay from "../components/StoryDisplay";
@@ -27,7 +25,6 @@ import { Card, CardContent } from "@/components/ui/card";
 export type { Story } from "../hooks/useStoryManager";
 
 const Index = () => {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -131,14 +128,6 @@ const Index = () => {
     }
   }, [location.pathname, initialLoadComplete, storyHistory, viewHistoryStory, story]);
 
-  const handleSignOut = useCallback(async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  }, [signOut]);
-
   const favoriteCount = storyHistory.filter(s => s.isFavorite).length;
 
   return (
@@ -170,20 +159,10 @@ const Index = () => {
                 whileHover={{ scale: 1.05 }}
                 className="hidden md:flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 backdrop-blur-sm"
               >
-                <User className="h-4 w-4 text-purple-300" />
                 <span className="text-sm text-white/90">
-                  {user?.name || user?.email}
+                  AI-Powered Story Generation
                 </span>
               </motion.div>
-              
-              <Button
-                variant="ghost"
-                onClick={handleSignOut}
-                className="text-white hover:bg-white/10 border border-white/20"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                {!isMobile && "Sign Out"}
-              </Button>
             </div>
           </div>
         </div>
