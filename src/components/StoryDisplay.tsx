@@ -110,11 +110,43 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
   };
 
   const handleShare = async () => {
-    if (!story.id) return;
+    if (!story.title || !story.content) return;
     
     setIsSharing(true);
     try {
-      const shareUrl = createShareableUrl(story.id);
+      // Save story to Supabase to get a permanent shareable ID
+      const { supabase } = await import("@/integrations/supabase/client");
+      
+      // Check if story already has a DB id (not local)
+      let dbId = story.id && !story.id.startsWith("local-") ? story.id : null;
+      
+      if (!dbId) {
+        const { data, error: insertError } = await supabase
+          .from("stories")
+          .insert({
+            title: story.title,
+            content: story.content,
+            takeaway: story.takeaway || "",
+            topic: story.topic || "",
+            is_public: true,
+            character: story.character || null,
+            emotions: Array.isArray(story.emotions) ? story.emotions : story.emotions ? [story.emotions] : null,
+            key_points: story.keyPoints || null,
+            difficulty: story.difficulty || null,
+          })
+          .select("id")
+          .single();
+        
+        if (insertError || !data) {
+          console.error("Error saving story for sharing:", insertError);
+          toast.error("Failed to save story for sharing. Please try again.");
+          setIsSharing(false);
+          return;
+        }
+        dbId = data.id;
+      }
+      
+      const shareUrl = createShareableUrl(dbId);
       const shareText = `Check out this amazing story: "${story.title}"`;
       
       const success = await shareContent(
@@ -124,7 +156,7 @@ const StoryDisplay: React.FC<StoryDisplayProps> = ({
       );
       
       if (success) {
-        toast.success("Story link copied to clipboard!");
+        toast.success("Story link copied! Share it with anyone 🎉");
       } else {
         toast.error("Failed to share story. Please try again.");
       }
