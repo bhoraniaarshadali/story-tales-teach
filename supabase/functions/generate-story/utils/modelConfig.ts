@@ -1,48 +1,36 @@
 // Global configuration for AI model settings
-// This file centralizes all model-related parameters for easy adjustment
-// Default configuration for story generation
+// Uses Google Gemini API directly for reliable story generation
+
 export const defaultStoryModelConfig = {
-  model: "tngtech/deepseek-r1t-chimera:free",
+  model: "gemini-2.0-flash",
   temperature: 0.9,
   top_p: 0.9,
   max_tokens: 1024,
-  provider: 'openrouter',
-  response_format: {
-    type: "json_object"
-  },
+  provider: 'google',
   maxRetries: 3,
-  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
-  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
+  fallbackModel: "gemini-2.0-flash-lite",
 };
-// More focused configuration for analytical tasks (topic analysis)
+
 export const analyticalModelConfig = {
-  model: "mistralai/mistral-7b-instruct:free",
+  model: "gemini-2.0-flash-lite",
   temperature: 0.3,
   top_p: 0.95,
   max_tokens: 300,
-  provider: 'openrouter',
-  response_format: {
-    type: "json_object"
-  },
+  provider: 'google',
   maxRetries: 3,
-  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
-  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
+  fallbackModel: "gemini-2.0-flash-lite",
 };
-// Configuration for generating personalized stories
+
 export const personalizedStoryConfig = {
-  model: "meta-llama/llama-4-maverick:free",
+  model: "gemini-2.0-flash",
   temperature: 0.85,
   top_p: 0.92,
   max_tokens: 1500,
-  provider: 'openrouter',
-  response_format: {
-    type: "json_object"
-  },
+  provider: 'google',
   maxRetries: 3,
-  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
-  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
+  fallbackModel: "gemini-2.0-flash-lite",
 };
-// Get appropriate configuration based on task type
+
 export function getModelConfig(task = 'story') {
   switch (task) {
     case 'analysis':
