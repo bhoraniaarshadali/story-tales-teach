@@ -20,7 +20,6 @@ const MESSAGES = {
   noApiKey: "Skipping validation (no API key found)",
   apiError: "Validation API error occurred, defaulting to valid",
   noJsonFound: "No valid JSON response found, assuming valid",
-  validationSkipped: "Validation skipped, defaulting to valid"
 };
 
 export function normalizeTopic(topic: string) {
@@ -29,8 +28,7 @@ export function normalizeTopic(topic: string) {
 }
 
 function isGibberish(topic: string) {
-  const repeatedPattern = /([a-z])\1{2,}|([a-z]{1,2})(\2){2,}/i;
-  return repeatedPattern.test(topic);
+  return /([a-z])\1{2,}|([a-z]{1,2})(\2){2,}/i.test(topic);
 }
 
 function performBasicValidation(topic: string) {
@@ -48,8 +46,7 @@ function performBasicValidation(topic: string) {
 }
 
 function getRandomSuggestion() {
-  const suggestions = CONFIG.defaultSuggestions;
-  return suggestions[Math.floor(Math.random() * suggestions.length)];
+  return CONFIG.defaultSuggestions[Math.floor(Math.random() * CONFIG.defaultSuggestions.length)];
 }
 
 export async function validateTopic(topic: string) {
@@ -60,9 +57,9 @@ export async function validateTopic(topic: string) {
   const basicValidation = performBasicValidation(topic);
   if (basicValidation) return basicValidation;
 
-  const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
-  if (!googleApiKey) {
-    console.log("🔑 GOOGLE_API_KEY not found, skipping AI validation");
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    console.log("🔑 LOVABLE_API_KEY not found, skipping AI validation");
     return { isValid: true, reason: MESSAGES.noApiKey, suggestedTopic: null };
   }
 
@@ -70,38 +67,28 @@ export async function validateTopic(topic: string) {
   const timeoutId = setTimeout(() => controller.abort(), CONFIG.validationTimeout);
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${googleApiKey}`;
-
-    const response = await fetch(url, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [{ text: `You are an assistant validating user input for a story generator app.
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: "You are an assistant validating user input for a story generator app. Respond in JSON only." },
+          { role: "user", content: `Check if this topic is suitable for generating an educational story: "${topic}"
 
-Please check if this topic is suitable for generating a story:
-"${topic}"
-
-Validation Checklist:
-- It should be an explainable concept
+Validation:
+- Must be an explainable concept
 - Not offensive, harmful, or illegal
 - Not gibberish or random characters
-- Not too vague (like just one word)
-- Casual or question-style phrasing is OK
+- Casual phrasing is OK
 
-Respond in EXACT JSON format:
-{
-  "isValid": boolean,
-  "reason": "brief explanation",
-  "suggestedTopic": "alternate if invalid, else null"
-}` }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 300,
-          responseMimeType: "application/json",
-        },
+Respond in JSON: {"isValid": boolean, "reason": "brief explanation", "suggestedTopic": "alternate if invalid, else null"}` }
+        ],
+        temperature: 0.2,
+        max_tokens: 300,
       }),
       signal: controller.signal
     });
@@ -114,30 +101,27 @@ Respond in EXACT JSON format:
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const content = data.choices?.[0]?.message?.content || "";
 
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const parsedResult = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
         return {
-          isValid: Boolean(parsedResult.isValid),
-          reason: parsedResult.reason || "No reason provided",
-          suggestedTopic: parsedResult.suggestedTopic || null
+          isValid: Boolean(parsed.isValid),
+          reason: parsed.reason || "No reason provided",
+          suggestedTopic: parsed.suggestedTopic || null
         };
-      } else {
-        console.warn("⚠️ No JSON found in API response");
-        return { isValid: true, reason: MESSAGES.noJsonFound, suggestedTopic: null };
       }
-    } catch (jsonError) {
-      console.error("❌ Error parsing JSON:", jsonError);
+      console.warn("⚠️ No JSON found in validation response");
+      return { isValid: true, reason: MESSAGES.noJsonFound, suggestedTopic: null };
+    } catch {
       return { isValid: true, reason: MESSAGES.noJsonFound, suggestedTopic: null };
     }
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      console.error("❌ Validation timed out");
-      return { isValid: true, reason: "Validation timed out, defaulting to valid", suggestedTopic: null };
+      return { isValid: true, reason: "Validation timed out", suggestedTopic: null };
     }
     console.error("❌ Validation error:", err);
     return { isValid: true, reason: MESSAGES.apiError, suggestedTopic: null };
@@ -147,19 +131,17 @@ Respond in EXACT JSON format:
 export function createInvalidTopicResponse(topic: string, reason: string, suggestedTopic: string | null) {
   const finalSuggestedTopic = suggestedTopic || (reason.includes("gibberish") ? getRandomSuggestion() : null);
   const suggestionText = finalSuggestedTopic
-    ? `\n\nAap chaahe to "${finalSuggestedTopic}" ke baare mein puch sakte hai, Yeh ek better topic ho sakta hai.`
+    ? `\n\nAap chaahe to "${finalSuggestedTopic}" ke baare mein puch sakte hai.`
     : "";
 
-  const responseBody = {
+  return new Response(JSON.stringify({
     title: "Oops! Topic Thoda Confusing Hai",
-    content: `Aapne jo topic diya wo samajhne mein thoda mushkil ho raha hai.\n\nReason: ${reason}${suggestionText}\n\nKya aap ise thoda aur clearly likh sakte hain?`,
+    content: `Aapne jo topic diya wo samajhne mein mushkil ho raha hai.\n\nReason: ${reason}${suggestionText}`,
     takeaway: "Ek specific aur meaningful topic dein jise story mein samjhaya ja sake.",
     emotions: ["confused", "curious"],
     topic,
     suggestedTopic: finalSuggestedTopic
-  };
-
-  return new Response(JSON.stringify(responseBody), {
+  }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
     status: 200
   });

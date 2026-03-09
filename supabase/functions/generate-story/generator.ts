@@ -13,37 +13,36 @@ function createErrorStory(topic: string, error: string, retryCount: number) {
   };
 }
 
-async function callGeminiAPI(model: string, prompt: string, systemPrompt: string, config: any) {
-  const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
-  if (!googleApiKey) {
-    throw new Error("GOOGLE_API_KEY missing in environment");
+async function callLovableAI(prompt: string, systemPrompt: string, config: any) {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    throw new Error("LOVABLE_API_KEY missing in environment");
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${googleApiKey}`;
-  
-  const response = await fetch(url, {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      contents: [
-        { role: "user", parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
       ],
-      generationConfig: {
-        temperature: config.temperature,
-        topP: config.top_p,
-        maxOutputTokens: config.max_tokens,
-        responseMimeType: "application/json",
-      },
+      temperature: config.temperature,
+      max_tokens: config.max_tokens,
     }),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${err.substring(0, 200)}`);
+    throw new Error(`AI Gateway error (${response.status}): ${err.substring(0, 200)}`);
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const text = data.choices?.[0]?.message?.content || "";
   return text;
 }
 
@@ -77,7 +76,7 @@ export async function generateStoryWithLLM(topic: string, userPreferences?: any)
     const systemPrompt = `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON.`;
 
     const prompt = `
-CRITICAL INSTRUCTION: Return ONLY a clean JSON object parseable by JSON.parse(). Do NOT include markdown, backticks, explanations, or any text outside the JSON. Any deviation will break the system.
+Return ONLY a clean JSON object parseable by JSON.parse(). No markdown, no backticks, no explanations.
 
 Generate a ${userPreferences?.languagePreference || 'Hinglish'} story SPECIFICALLY about "${topic}" that:
 - Explains "${topic}" in detail with clear examples
@@ -96,22 +95,10 @@ Output JSON must include:
 - takeaway (summarize importance of "${topic}")
 - emotions (array of strings)
 - keyPoints (array of strings, each mentioning "${topic}")
-${userPreferences ? '- difficulty (string indicating the reading level used)' : ''}
-${userPreferences ? '- personalizedFor (array of strings indicating which user preferences were considered)' : ''}
-
-Example format:
-{
-  "title": "${topic} Story",
-  "content": "This is about ${topic}. ${topic} helps... ${topic} is used in...",
-  "takeaway": "${topic} is important because...",
-  "emotions": ["curious", "excited"],
-  "keyPoints": ["${topic} is key for...", "${topic} enables..."]
-  ${userPreferences ? ',"difficulty": "intermediate",' : ''}
-  ${userPreferences ? '"personalizedFor": ["interests in technology", "visual learning style"]' : ''}
-}
+${userPreferences ? '- difficulty (string indicating the reading level used)\n- personalizedFor (array of strings indicating which user preferences were considered)' : ''}
 `;
 
-    console.log("Prompt prepared, calling Gemini API...");
+    console.log("Prompt prepared, calling Lovable AI Gateway...");
 
     let retryCount = 0;
     let lastError = "";
@@ -119,21 +106,15 @@ Example format:
 
     while (retryCount < modelConfig.maxRetries && !storyJson) {
       try {
-        const currentModel = retryCount >= modelConfig.maxRetries - 1 && modelConfig.fallbackModel
-          ? modelConfig.fallbackModel
-          : modelConfig.model;
+        console.log(`🚀 Attempt ${retryCount + 1}/${modelConfig.maxRetries}`);
 
-        console.log(`🚀 Attempt ${retryCount + 1}/${modelConfig.maxRetries} - Using model ${currentModel}`);
-
-        const text = await callGeminiAPI(currentModel, prompt, systemPrompt, modelConfig);
+        const text = await callLovableAI(prompt, systemPrompt, modelConfig);
         console.log(`📝 Raw output (attempt ${retryCount + 1}):`, text.substring(0, 200) + "...");
 
         let clean = text.trim();
         clean = clean.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "").trim();
         const jsonMatch = clean.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          clean = jsonMatch[0];
-        }
+        if (jsonMatch) clean = jsonMatch[0];
 
         try {
           storyJson = JSON.parse(clean);
@@ -142,17 +123,13 @@ Example format:
           console.error(`🛑 JSON parse failed on attempt ${retryCount + 1}:`, parseErr.message);
           lastError = `JSON parse error: ${parseErr.message}`;
           retryCount++;
-          if (retryCount < modelConfig.maxRetries) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          }
+          if (retryCount < modelConfig.maxRetries) await new Promise(r => setTimeout(r, 1000));
         }
       } catch (requestErr) {
         console.error(`🛑 Request error on attempt ${retryCount + 1}:`, requestErr.message);
         lastError = `Request error: ${requestErr.message}`;
         retryCount++;
-        if (retryCount < modelConfig.maxRetries) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
+        if (retryCount < modelConfig.maxRetries) await new Promise(r => setTimeout(r, 1000));
       }
     }
 
@@ -165,7 +142,6 @@ Example format:
       };
     }
 
-    // Normalize emotions
     if (typeof storyJson.emotions === "string") {
       storyJson.emotions = storyJson.emotions.split(",").map((e: string) => e.trim());
     }
@@ -173,20 +149,15 @@ Example format:
       storyJson.emotions = ["educational", "inspiring"];
     }
 
-    // Validate content
     if (!storyContainsTopic(storyJson, topic)) {
-      storyJson.content = `${storyJson.content}\n\nNote: This story might not fully explain "${topic}" as requested. If you'd like a more focused explanation, please try again.`;
+      storyJson.content = `${storyJson.content}\n\nNote: This story might not fully explain "${topic}" as requested.`;
       storyJson.qualityWarning = true;
     }
 
     if (retryCount > 0) {
       storyJson.retryCount = retryCount;
-      if (retryCount >= modelConfig.maxRetries - 1 && modelConfig.fallbackModel) {
-        storyJson.usedFallbackModel = true;
-      }
     }
 
-    // Add personalization info
     if (userPreferences) {
       const personalizedFor: string[] = [];
       if (userPreferences.readingLevel) personalizedFor.push(`${userPreferences.readingLevel} reading level`);
@@ -220,7 +191,7 @@ function storyContainsTopic(story: any, topic: string) {
   const topicWords = normalizedTopic.split(" ");
   const content = story.content?.toLowerCase() || "";
   const title = story.title?.toLowerCase() || "";
-  const contentMatch = topicWords.some((word: string) => content.includes(word)) || content.includes(normalizedTopic);
-  const titleMatch = topicWords.some((word: string) => title.includes(word)) || title.includes(normalizedTopic);
+  const contentMatch = topicWords.some((w: string) => content.includes(w)) || content.includes(normalizedTopic);
+  const titleMatch = topicWords.some((w: string) => title.includes(w)) || title.includes(normalizedTopic);
   return contentMatch && titleMatch && content.length > 30;
 }
