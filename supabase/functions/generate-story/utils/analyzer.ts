@@ -1,24 +1,18 @@
 import { getModelConfig } from './modelConfig.ts';
-// Default fallback values in case API doesn't respond or parse correctly
+
 const defaultAnalysis = {
-  emotions: [
-    "curious",
-    "interested"
-  ],
+  emotions: ["curious", "interested"],
   category: "general",
-  characteristics: [
-    "informative",
-    "educational",
-    "engaging"
-  ]
+  characteristics: ["informative", "educational", "engaging"]
 };
-// Function to analyze topic and extract potential emotions
-export async function analyzeTopicEmotions(topic) {
-  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
-  if (!openRouterApiKey) {
-    console.warn("OPENROUTER_API_KEY not found, returning default analysis");
+
+export async function analyzeTopicEmotions(topic: string) {
+  const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
+  if (!googleApiKey) {
+    console.warn("GOOGLE_API_KEY not found, returning default analysis");
     return defaultAnalysis;
   }
+
   try {
     const modelConfig = getModelConfig('analysis');
     const prompt = `
@@ -36,76 +30,51 @@ export async function analyzeTopicEmotions(topic) {
       "characteristics": ["characteristic1", "characteristic2", "characteristic3"]
     }
     `;
-    let retries = 0;
-    let response;
-    let data;
-    let success = false;
-    while (retries < modelConfig.maxRetries && !success) {
+
+    const currentModel = modelConfig.model;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${googleApiKey}`;
+
+    console.log(`Analysis attempt for topic "${topic}" using ${currentModel}`);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          { role: "user", parts: [{ text: `You are an educational assistant that analyzes topics.\n\n${prompt}` }] }
+        ],
+        generationConfig: {
+          temperature: modelConfig.temperature,
+          topP: modelConfig.top_p,
+          maxOutputTokens: modelConfig.max_tokens,
+          responseMimeType: "application/json",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`Gemini API error for analysis: ${response.status}`);
+      return defaultAnalysis;
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log(`Raw analysis response: ${text.substring(0, 150)}...`);
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
       try {
-        console.log(`Analysis attempt ${retries + 1} for topic "${topic}"`);
-        response = await fetch(modelConfig.apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openRouterApiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://www.story-tales-teach.me/",
-            "X-Title": "Story Tales Teach"
-          },
-          body: JSON.stringify({
-            model: retries >= modelConfig.maxRetries - 1 && modelConfig.fallbackModel ? modelConfig.fallbackModel : modelConfig.model,
-            messages: [
-              {
-                role: "system",
-                content: "You are an educational assistant that analyzes topics to extract educationally useful emotional and categorical metadata."
-              },
-              {
-                role: "user",
-                content: prompt
-              }
-            ],
-            response_format: modelConfig.response_format,
-            temperature: modelConfig.temperature,
-            max_tokens: modelConfig.max_tokens
-          })
-        });
-        data = await response.json();
-        if (!data.choices || data.choices.length === 0) {
-          console.warn(`API returned no choices on attempt ${retries + 1}, retrying...`);
-          retries++;
-          continue;
-        }
-        const text = data.choices[0].message.content;
-        console.log(`Raw analysis response: ${text.substring(0, 150)}...`);
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const parsed = JSON.parse(jsonMatch[0]);
-            success = true;
-            return parsed;
-          } catch (err) {
-            console.error(`JSON parsing failed on attempt ${retries + 1}:`, err.message);
-            console.error(`Failed JSON content: ${jsonMatch[0].substring(0, 200)}`);
-            retries++;
-          }
-        } else {
-          console.warn(`No JSON structure found in response on attempt ${retries + 1}, retrying...`);
-          retries++;
-        }
-      } catch (requestError) {
-        console.error(`API request failed on attempt ${retries + 1}:`, requestError);
-        retries++;
+        return JSON.parse(jsonMatch[0]);
+      } catch (err) {
+        console.error("JSON parsing failed for analysis:", err.message);
       }
-      // Add a small delay between retries
-      if (retries < modelConfig.maxRetries && !success) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+    } else {
+      console.warn("⚠️ No JSON found in API response");
     }
-    if (retries >= modelConfig.maxRetries) {
-      console.warn(`All ${modelConfig.maxRetries} analysis attempts failed, using default analysis`);
-    }
+
     return defaultAnalysis;
   } catch (err) {
-    console.error("Analysis process failed completely:", err);
+    console.error("Analysis process failed:", err);
     return defaultAnalysis;
   }
 }
