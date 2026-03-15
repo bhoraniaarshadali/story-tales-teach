@@ -137,6 +137,8 @@ Emotions: ${topicAnalysis.emotions.join(", ")}
 
 ${personalizationContext}
 
+IMPORTANT: Keep story content between 150-200 words maximum. Your full JSON response must be under 800 tokens. End with proper closing brackets and braces — never truncate.
+
 Output JSON must include:
 - title (must include "${topic}")
 - content (must mention "${topic}" at least 5 times)
@@ -182,7 +184,7 @@ Example format:
             messages: [
               {
                 role: "system",
-                content: `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON.`
+                content: `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON. You MUST complete your entire JSON response within 800 tokens. Plan your story length accordingly — never leave JSON incomplete. Short and complete is better than long and broken.`
               },
               {
                 role: "user",
