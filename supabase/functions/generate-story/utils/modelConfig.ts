@@ -3,71 +3,79 @@
 // This file centralizes all model-related parameters for easy adjustment
 
 export interface ModelConfig {
-  // Model selection options
   model: string;
-  // Temperature controls randomness: 0.0 = deterministic, 1.0 = creative
   temperature: number;
-  // Controls diversity via nucleus sampling
   top_p: number;
-  // Maximum number of tokens to generate
   max_tokens: number;
-  // Model provider (openrouter, openai, anthropic, etc.)
   provider: 'openrouter' | 'openai' | 'anthropic' | 'mistral' | 'custom';
-  // Format for output
   response_format: {
     type: string;
   };
-  // Maximum number of retries for failed requests
   maxRetries: number;
-  // Fallback model to use if primary model fails repeatedly
   fallbackModel?: string;
-  // API endpoint for the model provider
+  lastFallbackModel?: string;
   apiEndpoint: string;
+  frequency_penalty: number;
+  presence_penalty: number;
+  reasoning: boolean;
+  // Temperature overrides for fallback models
+  fallbackTemperature?: number;
+  lastFallbackTemperature?: number;
 }
 
 // Default configuration for story generation
 export const defaultStoryModelConfig: ModelConfig = {
-  model: "google/gemini-2.0-flash-exp:free", // Default model
-  temperature: 0.9,
+  model: "z-ai/glm-4.5-air:free",
+  temperature: 0.92,
   top_p: 0.9,
-  max_tokens: 1024,
+  max_tokens: 900,
   provider: 'openrouter',
-  response_format: {
-    type: "json_object"
-  },
+  response_format: { type: "json_object" },
   maxRetries: 3,
-  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
-  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
+  fallbackModel: "nvidia/nemotron-3-super-120b-a12b:free",
+  lastFallbackModel: "stepfun/step-3.5-flash:free",
+  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions",
+  frequency_penalty: 0.6,
+  presence_penalty: 0.5,
+  reasoning: false,
+  fallbackTemperature: 0.88,
+  lastFallbackTemperature: 0.85,
 };
 
 // More focused configuration for analytical tasks (topic analysis)
 export const analyticalModelConfig: ModelConfig = {
-  model: "google/gemini-2.0-flash-exp:free",
+  model: "z-ai/glm-4.5-air:free",
   temperature: 0.3,
   top_p: 0.95,
   max_tokens: 300,
   provider: 'openrouter',
-  response_format: {
-    type: "json_object"
-  },
+  response_format: { type: "json_object" },
   maxRetries: 3,
-  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
-  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
+  fallbackModel: "nvidia/nemotron-3-super-120b-a12b:free",
+  lastFallbackModel: "stepfun/step-3.5-flash:free",
+  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions",
+  frequency_penalty: 0.6,
+  presence_penalty: 0.5,
+  reasoning: false,
 };
 
 // Configuration for generating personalized stories
 export const personalizedStoryConfig: ModelConfig = {
-  model: "google/gemini-2.0-flash-exp:free",
-  temperature: 0.85, // Slightly lower temperature for personalization
+  model: "z-ai/glm-4.5-air:free",
+  temperature: 0.92,
   top_p: 0.92,
-  max_tokens: 1500, // Increased for more detailed personalized content
+  max_tokens: 900,
   provider: 'openrouter',
-  response_format: {
-    type: "json_object"
-  },
+  response_format: { type: "json_object" },
   maxRetries: 3,
-  fallbackModel: "mistralai/mistral-small-3.1-24b-instruct:free",
-  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions"
+  fallbackModel: "nvidia/nemotron-3-super-120b-a12b:free",
+  lastFallbackModel: "stepfun/step-3.5-flash:free",
+  apiEndpoint: "https://openrouter.ai/api/v1/chat/completions",
+  frequency_penalty: 0.6,
+  presence_penalty: 0.5,
+  reasoning: false,
+  fallbackTemperature: 0.88,
+  lastFallbackTemperature: 0.85,
 };
 
 // Get appropriate configuration based on task type
@@ -81,4 +89,15 @@ export function getModelConfig(task: 'story' | 'analysis' | 'personalized' = 'st
     default:
       return defaultStoryModelConfig;
   }
+}
+
+// Get the correct model and temperature for a given retry attempt
+export function getModelForAttempt(config: ModelConfig, attempt: number): { model: string; temperature: number } {
+  if (attempt >= 2 && config.lastFallbackModel) {
+    return { model: config.lastFallbackModel, temperature: config.lastFallbackTemperature ?? config.temperature };
+  }
+  if (attempt >= 1 && config.fallbackModel) {
+    return { model: config.fallbackModel, temperature: config.fallbackTemperature ?? config.temperature };
+  }
+  return { model: config.model, temperature: config.temperature };
 }

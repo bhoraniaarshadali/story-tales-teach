@@ -91,7 +91,6 @@ const Share = () => {
               error={error}
               onTryAgain={handleReturnHome}
               onClearError={() => setError(null)}
-              tryAgainLabel="Return to Home"
             />
           </div>
         )}
