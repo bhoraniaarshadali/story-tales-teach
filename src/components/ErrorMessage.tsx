@@ -7,12 +7,14 @@ interface ErrorMessageProps {
   error: string;
   onTryAgain: () => void;
   onClearError: () => void;
+  tryAgainLabel?: string; // Added this optional prop
 }
 
 const ErrorMessage: React.FC<ErrorMessageProps> = ({
   error,
   onTryAgain,
-  onClearError
+  onClearError,
+  tryAgainLabel = "Try Again" // Default value if not provided
 }) => {
   return (
     <div className="mt-8 text-center p-6 bg-muted rounded-lg border border-border max-w-md">
@@ -20,7 +22,7 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({
       <h3 className="text-xl font-semibold mb-2">Oops! Something Went Wrong</h3>
       <p className="text-muted-foreground mb-4">{error}</p>
       <div className="flex gap-4 justify-center">
-        <Button onClick={onTryAgain} className="bg-primary hover:bg-primary/90">Try Again</Button>
+        <Button onClick={onTryAgain} className="bg-primary hover:bg-primary/90">{tryAgainLabel}</Button>
         <Button variant="outline" onClick={onClearError}>
           Try Another Topic
         </Button>

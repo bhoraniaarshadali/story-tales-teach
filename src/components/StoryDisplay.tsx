@@ -1,317 +1,411 @@
-import React from "react";
-import {
-  Card,
-  Badge,
-  Button,
-  Avatar,
-  AvatarFallback,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui";
-import {
-  Heart, Book, Brain, Lightbulb, Share2,
-  UserCircle, Link, Copy, Check
+
+import React, { useState, useEffect, useRef } from "react";
+import { Story } from "@/hooks/useStoryManager";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { 
+  Heart, 
+  Share2, 
+  ThumbsUp, 
+  ThumbsDown, 
+  Edit, 
+  Save, 
+  X
 } from "lucide-react";
-import { type Story } from "../pages/Index";
-import { useAccessibility } from "../contexts/AccessibilityContext";
-import AudioNarration from "./AudioNarration";
-import { useIsMobile } from "../hooks/use-mobile";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { createShareableUrl, shareContent } from "../utils/shareUtils";
-import html2canvas from "html2canvas";
+import { Button } from "@/components/ui/button";
+import { createShareableUrl, shareContent } from "@/utils/shareUtils";
+import { updateStoryFeedback, getStoryFeedback, handleFeedbackOptimistic } from "@/utils/feedbackUtils";
 
 interface StoryDisplayProps {
-  story: Story | null;
+  story: Story;
+  isEditable?: boolean;
+  onEdit?: (newContent: string) => void;
   onToggleFavorite?: () => void;
 }
 
-const StoryDisplay: React.FC<StoryDisplayProps> = ({ story, onToggleFavorite }) => {
-  const { textSize } = useAccessibility();
-  const isMobile = useIsMobile();
-  const cardRef = React.useRef<HTMLDivElement>(null);
-  const [copied, setCopied] = React.useState(false);
+const StoryDisplay: React.FC<StoryDisplayProps> = ({ 
+  story, 
+  isEditable = false, 
+  onEdit,
+  onToggleFavorite 
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableContent, setEditableContent] = useState(story.content);
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [userFeedback, setUserFeedback] = useState<"like" | "dislike" | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const storyContentRef = useRef<HTMLDivElement>(null);
 
-  // Text size classes for accessibility
-  const textSizeClasses = {
-    small: "text-sm",
-    medium: "text-base",
-    large: "text-lg"
+  useEffect(() => {
+    const calculateReadingProgress = () => {
+      if (!storyContentRef.current) return;
+
+      const element = storyContentRef.current;
+      const scrollHeight = element.scrollHeight - element.clientHeight;
+      const scrollTop = element.scrollTop;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+
+      setReadingProgress(progress);
+    };
+
+    const element = storyContentRef.current;
+    if (element) {
+      element.addEventListener('scroll', calculateReadingProgress);
+      calculateReadingProgress(); // Initial calculation
+    }
+
+    return () => {
+      if (element) {
+        element.removeEventListener('scroll', calculateReadingProgress);
+      }
+    };
+  }, []);
+
+  // Load story feedback when the component mounts
+  useEffect(() => {
+    const loadFeedback = async () => {
+      if (story.id) {
+        const feedbackStats = await getStoryFeedback(story.id);
+        if (feedbackStats) {
+          setLikes(feedbackStats.likes);
+          setDislikes(feedbackStats.dislikes);
+          setUserFeedback(feedbackStats.userInteraction || null);
+        }
+      }
+    };
+    
+    loadFeedback();
+  }, [story.id]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditableContent(e.target.value);
   };
 
-  // Process emotions data
-  const emotionsArray = React.useMemo(() => {
-    if (!story?.emotions) return [];
-    return Array.isArray(story.emotions)
-      ? story.emotions
-      : typeof story.emotions === 'string'
-        ? story.emotions.split(',').map(e => e.trim())
-        : [];
-  }, [story?.emotions]);
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
 
-  if (!story) return null;
+  const handleSaveClick = () => {
+    if (onEdit) {
+      onEdit(editableContent);
+    }
+    setIsEditing(false);
+  };
 
-  // Section components for better organization
-  const HeaderSection = () => (
-    <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4 md:mb-6">
-      <div className="flex items-start sm:items-center gap-3 md:gap-4 w-full sm:w-auto">
-        <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-accent flex-shrink-0">
-          <AvatarFallback className="text-base md:text-lg">
-            {story.character?.emoji || "📚"}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
-            {story.title}
-          </h1>
-          <div className="flex flex-wrap gap-1 md:gap-2 mt-1">
-            {story.personalizedFor?.length ? (
-              <Badge variant="default" className="text-xs md:text-sm bg-primary/80 flex items-center gap-1">
-                <UserCircle className="h-3 w-3" />
-                Personalized
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-xs md:text-sm bg-accent/30">
-                Hinglish Story
-              </Badge>
-            )}
-            {story.difficulty && (
-              <Badge variant="secondary" className="text-xs md:text-sm">
-                {story.difficulty} level
-              </Badge>
-            )}
-            {story.topic && (
-              <Badge variant="secondary" className="text-xs md:text-sm">
-                {story.topic}
-              </Badge>
-            )}
-            {story.character?.traits && (
-              <Badge variant="outline" className="text-xs md:text-sm bg-muted">
-                <Brain className="h-3 w-3 mr-1" />
-                {story.character.traits}
-              </Badge>
-            )}
-          </div>
-        </div>
-      </div>
-      <ActionButtons />
-    </div>
-  );
+  const handleCancelClick = () => {
+    setEditableContent(story.content);
+    setIsEditing(false);
+  };
 
-  const ActionButtons = () => (
-    <div className="flex items-center gap-2 self-end sm:self-start mt-2 sm:mt-0">
-      <ShareDropdown />
-      {onToggleFavorite && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleFavorite}
-          aria-label={story.isFavorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          <Heart className={`h-5 w-5 md:h-6 md:w-6 ${story.isFavorite ? "fill-rose-500 text-rose-500" : ""
-            }`} />
-        </Button>
-      )}
-    </div>
-  );
-
-  const ShareDropdown = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Share options">
-          <Share2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleShareLink}>
-          {copied ? (
-            <Check className="h-4 w-4 mr-2" />
-          ) : (
-            <Link className="h-4 w-4 mr-2" />
-          )}
-          Copy link
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleShareImage}>
-          <Copy className="h-4 w-4 mr-2" />
-          Share as image
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
-  const PersonalizedSection = () => (
-    story.personalizedFor?.length > 0 && (
-      <SectionContainer>
-        <SectionHeader icon={<UserCircle />} title="Personalized for you:" />
-        <div className="flex flex-wrap gap-1 md:gap-2">
-          {story.personalizedFor.map((aspect, index) => (
-            <Badge
-              key={index}
-              variant="outline"
-              className="text-[10px] md:text-xs bg-primary/5"
-            >
-              {aspect}
-            </Badge>
-          ))}
-        </div>
-      </SectionContainer>
-    )
-  );
-
-  const EmotionsSection = () => (
-    emotionsArray.length > 0 && (
-      <SectionContainer>
-        <SectionHeader title="Story emotions:" />
-        <div className="flex flex-wrap gap-1 md:gap-2">
-          {emotionsArray.map((emotion, index) => (
-            <Badge
-              key={index}
-              variant="outline"
-              className="text-[10px] md:text-xs"
-            >
-              {emotion}
-            </Badge>
-          ))}
-        </div>
-      </SectionContainer>
-    )
-  );
-
-  const ContentSection = () => (
-    <div className="mb-4 md:mb-6">
-      <AudioNarration
-        text={story.content}
-        characterName={story.character?.name}
-      />
-      <div className={`prose prose-purple max-w-none ${textSizeClasses[textSize]} mt-4`}>
-        {story.content.split("\n\n").map((paragraph, i) => (
-          paragraph.includes('<div class="suggestion-box">') ? (
-            <div
-              key={i}
-              className="my-3 md:my-4"
-              dangerouslySetInnerHTML={{ __html: paragraph }}
-            />
-          ) : (
-            <p key={i} className="mb-3 md:mb-4 text-foreground/90">
-              {paragraph}
-            </p>
-          )
-        ))}
-      </div>
-    </div>
-  );
-
-  const TakeawaySection = () => (
-    <SectionContainer className="bg-muted">
-      <SectionHeader
-        icon={<Lightbulb className="text-amber-500" />}
-        title="Learning Takeaway"
-      />
-      <p className={`italic text-foreground/80 ${textSizeClasses[textSize]}`}>
-        {story.takeaway}
-      </p>
-    </SectionContainer>
-  );
-
-  const KeyPointsSection = () => (
-    story.keyPoints?.length > 0 && (
-      <SectionContainer className="bg-accent/10 mt-4">
-        <SectionHeader
-          icon={<Book className="text-primary" />}
-          title="Key Points"
-        />
-        <ul className={`list-disc list-inside space-y-1 ${textSizeClasses[textSize]}`}>
-          {story.keyPoints.map((point, index) => (
-            <li key={index} className="text-foreground/80">{point}</li>
-          ))}
-        </ul>
-      </SectionContainer>
-    )
-  );
-
-  const SectionContainer = ({
-    children,
-    className = ""
-  }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <div className={`mb-3 md:mb-4 p-3 md:p-4 rounded-md border border-border ${className}`}>
-      {children}
-    </div>
-  );
-
-  const SectionHeader = ({
-    icon,
-    title
-  }: {
-    icon?: React.ReactElement;
-    title: string;
-  }) => (
-    <h3 className="text-xs md:text-sm font-medium text-primary/80 mb-1 md:mb-2 flex items-center">
-      {icon && React.cloneElement(icon, {
-        className: `mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4 ${icon.props.className || ''}`
-      })}
-      {title}
-    </h3>
-  );
-
-  // Share handlers
-  const handleShareImage = async () => {
-    if (!cardRef.current) return;
+  const handleShare = async () => {
+    if (!story.title || !story.content) return;
+    
+    setIsSharing(true);
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null,
-        allowTaint: true,
-        foreignObjectRendering: true
-      });
-      const dataUrl = canvas.toDataURL("image/png");
-
-      if (navigator.canShare) {
-        const blob = await (await fetch(dataUrl)).blob();
-        await navigator.share({
-          files: [new File([blob], 'story.png', { type: 'image/png' })],
-          title: story.title
-        });
+      // Save story to Supabase to get a permanent shareable ID
+      const { supabase } = await import("@/integrations/supabase/client");
+      
+      // Check if story already has a DB id (not local)
+      let dbId = story.id && !story.id.startsWith("local-") ? story.id : null;
+      
+      if (!dbId) {
+        const { data, error: insertError } = await supabase
+          .from("stories")
+          .insert({
+            title: story.title,
+            content: story.content,
+            takeaway: story.takeaway || "",
+            topic: story.topic || "",
+            is_public: true,
+            character: story.character || null,
+            emotions: Array.isArray(story.emotions) ? story.emotions : story.emotions ? [story.emotions] : null,
+            key_points: story.keyPoints || null,
+            difficulty: story.difficulty || null,
+          })
+          .select("id")
+          .single();
+        
+        if (insertError || !data) {
+          console.error("Error saving story for sharing:", insertError);
+          toast.error("Failed to save story for sharing. Please try again.");
+          setIsSharing(false);
+          return;
+        }
+        dbId = data.id;
+      }
+      
+      const shareUrl = createShareableUrl(dbId);
+      const shareText = `Check out this amazing story: "${story.title}"`;
+      
+      const success = await shareContent(
+        story.title,
+        shareText,
+        shareUrl
+      );
+      
+      if (success) {
+        toast.success("Story link copied! Share it with anyone 🎉");
       } else {
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'story.png';
-        link.click();
-        toast.success('Image downloaded!');
+        toast.error("Failed to share story. Please try again.");
       }
     } catch (error) {
-      toast.error('Failed to share image');
+      console.error("Error sharing story:", error);
+      toast.error("Failed to share story. Please try again.");
+    } finally {
+      setIsSharing(false);
     }
   };
 
-  const handleShareLink = async () => {
+  const handleFeedback = async (type: "like" | "dislike") => {
     if (!story.id) return;
-    const shareUrl = createShareableUrl(story.id);
-    const success = await shareContent(
-      story.title,
-      `Check out this learning story about ${story.topic}: ${story.title}`,
-      shareUrl
-    );
 
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    // Optimistic UI update
+    const newFeedbackState = handleFeedbackOptimistic(story.id, type, userFeedback);
+    const prevFeedbackState = userFeedback;
+    
+    // Update local state for immediate feedback
+    if (type === "like") {
+      setLikes(prev => newFeedbackState === "like" ? prev + 1 : prev - 1);
+      if (prevFeedbackState === "dislike") setDislikes(prev => prev - 1);
+    } else {
+      setDislikes(prev => newFeedbackState === "dislike" ? prev + 1 : prev - 1);
+      if (prevFeedbackState === "like") setLikes(prev => prev - 1);
+    }
+    setUserFeedback(newFeedbackState);
+    
+    // Update in the backend
+    const action = newFeedbackState === type ? "add" : "remove";
+    const result = await updateStoryFeedback(story.id, type, action);
+    
+    if (!result) {
+      // Revert optimistic update if backend update fails
+      setUserFeedback(prevFeedbackState);
+      setLikes(result?.likes || likes);
+      setDislikes(result?.dislikes || dislikes);
+      toast.error("Failed to update feedback. Please try again.");
     }
   };
 
   return (
-    <article className="w-full max-w-full sm:max-w-2xl md:max-w-3xl mx-auto mt-4 md:mt-8 px-2 sm:px-0">
-      <Card ref={cardRef} className="p-4 md:p-6 shadow-lg border-primary/20 bg-card">
-        <HeaderSection />
-        <PersonalizedSection />
-        <EmotionsSection />
-        <ContentSection />
-        <TakeawaySection />
-        <KeyPointsSection />
-      </Card>
-    </article>
+    <div className="relative rounded-lg shadow-md bg-card text-card-foreground">
+      {story.difficulty && (
+        <Badge
+          className="absolute top-2 right-2 z-10"
+          variant={
+            story.difficulty === "beginner"
+              ? "outline"
+              : story.difficulty === "intermediate"
+              ? "secondary"
+              : "destructive"
+          }
+        >
+          {story.difficulty}
+        </Badge>
+      )}
+
+      <div className="p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">{story.title}</h2>
+          {story.character && (
+            <div className="flex items-center space-x-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={`https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`} />
+                <AvatarFallback>{story.character.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">{story.character.name}</span>
+            </div>
+          )}
+        </div>
+
+        {story.emotions && (
+          <div className="mb-4">
+            <strong>Emotions:</strong>{" "}
+            {Array.isArray(story.emotions)
+              ? story.emotions.join(", ")
+              : story.emotions}
+          </div>
+        )}
+
+        {isEditing ? (
+          <textarea
+            value={editableContent}
+            onChange={handleContentChange}
+            className="w-full h-64 p-3 border rounded-md resize-none focus:outline-none focus:ring focus:border-primary"
+          />
+        ) : (
+          <div
+            ref={storyContentRef}
+            className="story-content max-h-[400px] overflow-y-auto text-sm md:text-base leading-relaxed"
+          >
+            {story.content}
+          </div>
+        )}
+
+        <Progress value={readingProgress} className="mt-2" />
+
+        <div className="mt-4">
+          <strong>Key Takeaway:</strong>
+          <p className="text-gray-600 dark:text-gray-400">{story.takeaway}</p>
+        </div>
+
+        {story.keyPoints && story.keyPoints.length > 0 && (
+          <div className="mt-4">
+            <strong>Key Points:</strong>
+            <ul className="list-disc list-inside text-gray-600 dark:text-gray-400">
+              {story.keyPoints.map((point, index) => (
+                <li key={index}>{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                      "hover:bg-primary/10",
+                      userFeedback === "like" && "text-green-600 bg-green-100 dark:bg-green-900/20"
+                    )}
+                    onClick={() => handleFeedback("like")}
+                  >
+                    <ThumbsUp className={cn(
+                      userFeedback === "like" ? "fill-current" : ""
+                    )} />
+                    {likes > 0 && <span className="ml-1 text-xs">{likes}</span>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Like this story</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      "hover:bg-primary/10",
+                      userFeedback === "dislike" && "text-red-600 bg-red-100 dark:bg-red-900/20"
+                    )}
+                    onClick={() => handleFeedback("dislike")}
+                  >
+                    <ThumbsDown className={cn(
+                      userFeedback === "dislike" ? "fill-current" : ""
+                    )} />
+                    {dislikes > 0 && <span className="ml-1 text-xs">{dislikes}</span>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Dislike this story</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      "hover:bg-primary/10",
+                      story.isFavorite && "text-red-600"
+                    )}
+                    onClick={onToggleFavorite}
+                    disabled={!onToggleFavorite}
+                  >
+                    <motion.div
+                      whileTap={story.isFavorite ? { scale: 0.8 } : { scale: 1.2 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                    >
+                      <Heart className={cn(
+                        story.isFavorite ? "fill-red-600 stroke-red-600" : ""
+                      )} />
+                    </motion.div>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{story.isFavorite ? "Remove from favorites" : "Add to favorites"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="hover:bg-primary/10"
+                    onClick={handleShare}
+                    disabled={isSharing || !story.id}
+                  >
+                    <Share2 className={isSharing ? "animate-pulse" : ""} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Share this story</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {isEditable && (
+            <div className="flex justify-end space-x-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    onClick={handleSaveClick}
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <Save size={16} /> Save
+                  </Button>
+                  <Button
+                    onClick={handleCancelClick}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <X size={16} /> Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={handleEditClick}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  <Edit size={16} /> Edit
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

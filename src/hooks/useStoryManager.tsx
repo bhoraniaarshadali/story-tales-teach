@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
-import { generateStory, UserPreferences } from "../services/storyService";
+import { generateEnhancedStory, analyzePopularTopics, fetchStories, storeStoryInDatabase } from "../utils/llmWrapper";
 import { toast } from "sonner";
+
+export interface UserPreferences {
+  language?: 'english' | 'hindi' | 'hinglish';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  storyType?: 'adventure' | 'mystery' | 'educational' | 'funny' | 'inspirational';
+  characterName?: string;
+  previousTopics?: string[];
+  favoriteTopics?: string[];
+}
 
 export interface Story {
   title: string;
@@ -22,6 +31,13 @@ export interface Story {
   retryCount?: number;
   usedFallbackModel?: boolean;
   qualityWarning?: boolean;
+  likes?: number;
+  dislikes?: number;
+  metadata?: {
+    provider?: string;
+    providerName?: string;
+    generatedAt?: string;
+  };
 }
 
 export const useStoryManager = () => {
@@ -32,24 +48,35 @@ export const useStoryManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [isDatabaseSynced, setIsDatabaseSynced] = useState<boolean>(false);
 
-  // Load story history from localStorage
+  // Load story history from localStorage only (no database sync needed)
   useEffect(() => {
-    const savedStories = localStorage.getItem("storyHistory");
-    if (savedStories) {
-      setStoryHistory(JSON.parse(savedStories));
-    }
+    const loadStoriesFromLocalStorage = () => {
+      const savedStories = localStorage.getItem("storyHistory");
+      if (savedStories) {
+        setStoryHistory(JSON.parse(savedStories));
+      }
+    };
     
     // Load user preferences from localStorage
-    const savedPreferences = localStorage.getItem("userPreferences");
-    if (savedPreferences) {
-      setUserPreferences(JSON.parse(savedPreferences));
-    }
+    const loadUserPreferences = () => {
+      const savedPreferences = localStorage.getItem("userPreferences");
+      if (savedPreferences) {
+        setUserPreferences(JSON.parse(savedPreferences));
+      }
+    };
+    
+    loadUserPreferences();
+    loadStoriesFromLocalStorage();
+    setIsDatabaseSynced(true); // No need for database sync
   }, []);
 
   // Save story history to localStorage
   useEffect(() => {
-    localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
+    if (storyHistory.length > 0) {
+      localStorage.setItem("storyHistory", JSON.stringify(storyHistory));
+    }
   }, [storyHistory]);
 
   // Save user preferences to localStorage
@@ -108,7 +135,7 @@ export const useStoryManager = () => {
         console.log("Sending preferences to API:", JSON.stringify(preferences));
       }
       
-      const generatedStory = await generateStory(topic, preferences);
+      const generatedStory = await generateEnhancedStory(topic, preferences);
 
       // Verify that the story is actually about the requested topic
       if (!generatedStory.content.toLowerCase().includes(topic.toLowerCase()) && generatedStory.title.toLowerCase().includes("Oops!")) {
@@ -122,7 +149,7 @@ export const useStoryManager = () => {
       // Ensure the topic is saved in the story
       const storyWithMeta: Story = {
         ...generatedStory,
-        id: Date.now().toString(),
+        id: `local-${Date.now().toString()}`, // Local ID
         timestamp: new Date().toISOString(),
         topic: topic, // Make sure we set the topic explicitly here
         isFavorite: false
@@ -169,6 +196,7 @@ export const useStoryManager = () => {
     }
   };
 
+  // Toggle favorite status of a story
   const toggleFavorite = (storyId: string) => {
     let isNowFavorite = false;
     if (story && story.id === storyId) {
@@ -177,6 +205,16 @@ export const useStoryManager = () => {
         ...story,
         isFavorite: isNowFavorite
       });
+      
+      // Show favorite animation when adding to favorites
+      if (isNowFavorite) {
+        // Heart animation effect could be added here
+        toast.success("Added to favorites!", {
+          icon: "❤️"
+        });
+      } else {
+        toast.success("Removed from favorites");
+      }
     } else {
       const found = storyHistory.find(item => item.id === storyId);
       if (found) {
@@ -201,12 +239,6 @@ export const useStoryManager = () => {
           favoriteTopics: [...currentFavorites, story.topic].slice(0, 10) // Keep only 10 favorites
         });
       }
-    }
-
-    if (isNowFavorite) {
-      toast.success("Story added to favorites!");
-    } else {
-      toast.success("Story removed from favorites!");
     }
   };
 

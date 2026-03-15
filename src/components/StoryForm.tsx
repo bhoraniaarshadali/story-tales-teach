@@ -1,335 +1,318 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Sparkles, BookOpen, TrendingUp, AlertCircle, RefreshCw, UserCircle, Info } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { UserPreferences } from "../services/storyService";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Sparkles, 
+  Settings, 
+  Wand2, 
+  Brain, 
+  Languages, 
+  User,
+  Star,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { UserPreferences } from "@/hooks/useStoryManager";
+import { cn } from "@/lib/utils";
 
 interface StoryFormProps {
-  onSubmit: (topic: string, usePersonalization: boolean) => void;
+  onSubmit: (topic: string) => void;
   isLoading: boolean;
-  error?: Error | null;
-  invalidTopicResponse?: any;
   userPreferences?: UserPreferences | null;
-  onUpdatePreferences?: (preferences: UserPreferences) => void;
-  retryCount?: number;
+  onUpdatePreferences: (preferences: Partial<UserPreferences>) => void;
+  retryCount: number;
+  popularTopics: { topic: string; count: number }[];
 }
 
 const StoryForm: React.FC<StoryFormProps> = ({
   onSubmit,
   isLoading,
-  error,
-  invalidTopicResponse,
-  userPreferences = null,
+  userPreferences,
   onUpdatePreferences,
-  retryCount = 0
+  retryCount,
+  popularTopics = []
 }) => {
   const [topic, setTopic] = useState("");
-  const [usePersonalization, setUsePersonalization] = useState(
-    userPreferences?.usePersonalization ?? true
-  );
+  const [isPersonalizeOpen, setIsPersonalizeOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const popularTopics = [
-    "Artificial Intelligence",
-    "Docker",
-    "Cloud Computing",
-    "Machine Learning",
-    "Kubernetes",
-    "Android Activity"
-  ];
-
-  // Sync personalization state when userPreferences changes
-  useEffect(() => {
-    if (userPreferences?.usePersonalization !== undefined) {
-      setUsePersonalization(userPreferences.usePersonalization);
-    }
-  }, [userPreferences?.usePersonalization]);
+  // Provide default preferences if null
+  const safePreferences = userPreferences || {};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim()) {
-      console.log('Submitting with:', {
-        topic,
-        usePersonalization,
-        preferences: userPreferences
-      });
-      onSubmit(topic, usePersonalization);
+      onSubmit(topic.trim());
+      setTopic("");
     }
   };
 
-  const handleTopicClick = (selectedTopic: string) => {
-    setTopic(selectedTopic);
-    onSubmit(selectedTopic, usePersonalization);
+  const handleTopicClick = (topicName: string) => {
+    setTopic(topicName);
   };
 
-  const handleTryAgain = () => {
-    if (topic.trim()) {
-      onSubmit(topic, usePersonalization);
-    }
-  };
+  const languages = [
+    { value: "english", label: "English", flag: "🇺🇸" },
+    { value: "hindi", label: "Hindi", flag: "🇮🇳" },
+    { value: "hinglish", label: "Hinglish", flag: "🔄" }
+  ];
 
-  const handleSuggestedTopic = (suggestedTopic: string) => {
-    setTopic(suggestedTopic);
-    onSubmit(suggestedTopic, usePersonalization);
-  };
+  const difficulties = [
+    { value: "beginner", label: "Beginner", icon: "🌱" },
+    { value: "intermediate", label: "Intermediate", icon: "📈" },
+    { value: "advanced", label: "Advanced", icon: "🚀" }
+  ];
 
-  const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
-    const updatedPreferences = {
-      ...(userPreferences || {}),
-      [key]: value
-    };
-
-    // Update local state for usePersonalization to ensure immediate UI response
-    if (key === 'usePersonalization') {
-      setUsePersonalization(value);
-    }
-
-    if (onUpdatePreferences) {
-      console.log('Updating preferences:', updatedPreferences);
-      onUpdatePreferences(updatedPreferences);
-    }
-  };
+  const storyTypes = [
+    { value: "adventure", label: "Adventure", icon: "🗺️" },
+    { value: "mystery", label: "Mystery", icon: "🔍" },
+    { value: "educational", label: "Educational", icon: "📚" },
+    { value: "funny", label: "Funny", icon: "😄" },
+    { value: "inspirational", label: "Inspirational", icon: "✨" }
+  ];
 
   return (
-    <Card className="w-full max-w-md p-6 space-y-6 bg-card">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold mb-2 flex items-center">
-            <BookOpen className="mr-2 h-5 w-5 text-primary" />
-            What would you like to learn about?
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Enter any topic and get a fun Hinglish story that explains it
-          </p>
-        </div>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Main Story Generation Form */}
+      <Card className="bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-sm border border-white/30 shadow-xl">
+        <CardContent className="p-6">
+          <div className="text-center mb-6">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="inline-block mb-4"
+            >
+              <Wand2 className="h-8 w-8 text-purple-400" />
+            </motion.div>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              Generate a Story
+            </h2>
+            <p className="text-white/70">
+              Enter any topic and let AI create a personalized learning story for you
+            </p>
+          </div>
 
-        <div className="flex space-x-2">
-          
-
-          {/* Personalization Settings */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" title="Personalization Settings">
-                <UserCircle className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Personalization Settings</h3>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="use-personalization" className="text-sm">Use personalization</Label>
-                    <Switch
-                      id="use-personalization"
-                      checked={usePersonalization}
-                      onCheckedChange={(checked) => handlePreferenceChange('usePersonalization', checked)}
-                    />
-                  </div>
-
-                  {userPreferences?.previousTopics?.length ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Previous topics</Label>
-                      <div className="flex flex-wrap gap-1">
-                        {userPreferences.previousTopics.map((topic, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {topic}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {userPreferences?.favoriteTopics?.length ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Favorite topics</Label>
-                      <div className="flex flex-wrap gap-1">
-                        {userPreferences.favoriteTopics.map((topic, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {topic}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="reading-level">Reading Level</Label>
-                  <Select
-                    value={userPreferences?.readingLevel || 'intermediate'}
-                    onValueChange={(value) => handlePreferenceChange('readingLevel', value)}
-                  >
-                    <SelectTrigger id="reading-level">
-                      <SelectValue placeholder="Select reading level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="advanced">Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language-preference">Language Style</Label>
-                  <Select
-                    value={userPreferences?.languagePreference || 'hinglish'}
-                    onValueChange={(value) => handlePreferenceChange('languagePreference', value)}
-                  >
-                    <SelectTrigger id="language-preference">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hinglish">Hinglish</SelectItem>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="hindi">Hindi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="learning-style">Learning Style</Label>
-                  <Select
-                    value={userPreferences?.learningStyle || 'reading'}
-                    onValueChange={(value) => handlePreferenceChange('learningStyle', value)}
-                  >
-                    <SelectTrigger id="learning-style">
-                      <SelectValue placeholder="Select learning style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="visual">Visual</SelectItem>
-                      <SelectItem value="auditory">Auditory</SelectItem>
-                      <SelectItem value="reading">Reading/Writing</SelectItem>
-                      <SelectItem value="kinesthetic">Practical/Examples</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
-      {/* Error handling section */}
-      {(error || invalidTopicResponse) && (
-        <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="font-medium">
-            {invalidTopicResponse?.title || "Oops! Topic Problem"}
-          </AlertTitle>
-          <AlertDescription className="mt-2">
-            {invalidTopicResponse ? (
-              <div className="space-y-2">
-                <p>{invalidTopicResponse.content}</p>
-                {invalidTopicResponse.suggestedTopic && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSuggestedTopic(invalidTopicResponse.suggestedTopic)}
-                    className="mt-2"
-                  >
-                    Try "{invalidTopicResponse.suggestedTopic}" instead
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <p>
-                {error?.message || "We couldn't create a story about that topic. Please try again or try a different topic."}
-              </p>
-            )}
-            <div className="flex gap-2 mt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTryAgain}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <Input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Enter any topic you want to learn about..."
+                className="w-full h-14 text-lg bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-sm rounded-xl pr-24"
                 disabled={isLoading}
-                className="flex items-center"
-              >
-                <RefreshCw className="mr-1 h-3 w-3" /> Try Again {retryCount > 0 ? `(${retryCount + 1})` : ""}
-              </Button>
+              />
               <Button
-                variant="default"
-                size="sm"
-                onClick={() => setTopic("")}
-                className="bg-primary"
+                type="submit"
+                disabled={!topic.trim() || isLoading}
+                className="absolute right-2 top-2 h-10 px-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0 rounded-lg"
               >
-                Try Another Topic
+                {isLoading ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </motion.div>
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Generate
+                  </>
+                )}
               </Button>
             </div>
-          </AlertDescription>
-        </Alert>
-      )}
+          </form>
 
-      {retryCount >= 3 && !error && !invalidTopicResponse && (
-        <Alert variant="warning" className="bg-yellow-50 border-yellow-200 text-yellow-800">
-          <Info className="h-4 w-4" />
-          <AlertTitle className="font-medium">
-            Having trouble generating stories
-          </AlertTitle>
-          <AlertDescription>
-            We're experiencing some technical difficulties. If your story doesn't look right,
-            try again later or with a different topic.
-          </AlertDescription>
-        </Alert>
-      )}
+          {/* Personalization Toggle */}
+          <div className="mt-6">
+            <Collapsible open={isPersonalizeOpen} onOpenChange={setIsPersonalizeOpen}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between text-white hover:bg-white/10 p-4 rounded-xl"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-purple-400" />
+                    <span>Personalize Your Story</span>
+                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 border-purple-400/30">
+                      AI Enhanced
+                    </Badge>
+                  </div>
+                  {isPersonalizeOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          type="text"
-          value={topic}
-          onChange={e => setTopic(e.target.value)}
-          placeholder="Enter any topic (e.g., 'Photosynthesis', 'Time management', 'Empathy')"
-          className="w-full"
-          disabled={isLoading}
-        />
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={!topic.trim() || isLoading}
+              <CollapsibleContent className="space-y-6 mt-4">
+                <AnimatePresence>
+                  {isPersonalizeOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-6 p-4 bg-white/5 rounded-xl border border-white/10"
+                    >
+                      {/* Language Selection */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <Languages className="h-4 w-4 text-blue-400" />
+                          Story Language
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {languages.map((lang) => (
+                            <motion.button
+                              key={lang.value}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onUpdatePreferences({ language: lang.value as any })}
+                              className={cn(
+                                "p-4 rounded-xl border transition-all text-left",
+                                safePreferences.language === lang.value
+                                  ? "bg-purple-500/30 border-purple-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{lang.flag}</span>
+                                <span className="font-medium">{lang.label}</span>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Difficulty Level */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <Brain className="h-4 w-4 text-green-400" />
+                          Difficulty Level
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {difficulties.map((diff) => (
+                            <motion.button
+                              key={diff.value}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onUpdatePreferences({ difficulty: diff.value as any })}
+                              className={cn(
+                                "p-4 rounded-xl border transition-all text-left",
+                                safePreferences.difficulty === diff.value
+                                  ? "bg-green-500/30 border-green-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{diff.icon}</span>
+                                <span className="font-medium">{diff.label}</span>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Story Type */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <Star className="h-4 w-4 text-yellow-400" />
+                          Story Type
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                          {storyTypes.map((type) => (
+                            <motion.button
+                              key={type.value}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onUpdatePreferences({ storyType: type.value as any })}
+                              className={cn(
+                                "p-3 rounded-xl border transition-all text-center",
+                                safePreferences.storyType === type.value
+                                  ? "bg-yellow-500/30 border-yellow-400 text-white"
+                                  : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                              )}
+                            >
+                              <div className="space-y-1">
+                                <div className="text-xl">{type.icon}</div>
+                                <div className="text-sm font-medium">{type.label}</div>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Character Name */}
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-white font-medium">
+                          <User className="h-4 w-4 text-pink-400" />
+                          Character Name (Optional)
+                        </label>
+                        <Input
+                          type="text"
+                          value={safePreferences.characterName || ""}
+                          onChange={(e) => onUpdatePreferences({ characterName: e.target.value })}
+                          placeholder="Enter a character name for your story..."
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Popular Topics */}
+      {popularTopics.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
         >
-          {isLoading ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Creating Story...
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate {usePersonalization ? "Personalized" : ""} Learning Story
-            </>
-          )}
-        </Button>
-      </form>
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground flex items-center">
-          <TrendingUp className="mr-1 h-4 w-4" />
-          Popular topics:
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {popularTopics.map(popularTopic => (
-            <Button
-              key={popularTopic}
-              variant="outline"
-              size="sm"
-              onClick={() => handleTopicClick(popularTopic)}
-              disabled={isLoading}
-              className="text-xs"
-            >
-              {popularTopic}
-            </Button>
-          ))}
-        </div>
-      </div>
-    </Card>
+          <Card className="bg-white/10 backdrop-blur-sm border border-white/20">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-5 w-5 text-orange-400" />
+                <h3 className="text-lg font-semibold text-white">Popular Topics</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {popularTopics.slice(0, 8).map((popularTopic, index) => (
+                  <motion.div
+                    key={popularTopic.topic}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer bg-white/10 text-white border-white/20 hover:bg-white/20 transition-all duration-200 px-3 py-1"
+                      onClick={() => handleTopicClick(popularTopic.topic)}
+                    >
+                      {popularTopic.topic}
+                      <span className="ml-2 text-xs opacity-70">
+                        {popularTopic.count}
+                      </span>
+                    </Badge>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </div>
   );
 };
 
