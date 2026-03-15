@@ -182,7 +182,7 @@ Example format:
             messages: [
               {
                 role: "system",
-                content: `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON.`
+                content: `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON. You MUST complete your entire JSON response within 800 tokens. Plan your story length accordingly — never leave JSON incomplete. Short and complete is better than long and broken.`
               },
               {
                 role: "user",
