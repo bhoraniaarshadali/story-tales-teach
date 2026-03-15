@@ -30,6 +30,7 @@ export interface UserPreferences {
   learningStyle?: 'visual' | 'auditory' | 'reading' | 'kinesthetic';
   favoriteTopics?: string[];
   previousTopics?: string[];
+  usePersonalization?: boolean;
 }
 
 export const generateStory = async (topic: string, userPreferences?: UserPreferences): Promise<StoryResponse> => {
