@@ -64,7 +64,7 @@ export const personalizedStoryConfig: ModelConfig = {
   model: "z-ai/glm-4.5-air:free",
   temperature: 0.92,
   top_p: 0.92,
-  max_tokens: 900,
+  max_tokens: 1000,
   provider: 'openrouter',
   response_format: { type: "json_object" },
   maxRetries: 3,
