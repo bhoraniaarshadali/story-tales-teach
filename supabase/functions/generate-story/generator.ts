@@ -1,140 +1,129 @@
-import { analyzeTopicEmotions } from "./utils/analyzer.ts";
 import { generateCharacter } from "./characters.ts";
-import { getModelConfig } from "./utils/modelConfig.ts";
+
+const KIE_API_URL = "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions";
 
 function createErrorStory(topic: string, error: string, retryCount: number) {
   return {
     title: `Story about ${topic}`,
-    content: `We couldn't generate a detailed story about "${topic}" due to an issue with our AI system (${error}). ${retryCount >= 3 ? "We've tried multiple times but encountered technical difficulties." : "Please try again!"}`,
-    takeaway: retryCount >= 3 ? "Sometimes technology needs a break. Please try again later!" : "Sometimes technology needs a retry!",
+    content: `We couldn't generate a detailed story about "${topic}" due to an issue (${error}). ${retryCount >= 3 ? "We've tried multiple times." : "Please try again!"}`,
+    takeaway: "Sometimes technology needs a break. Please try again later!",
     emotions: ["curious", "educational"],
     keyPoints: [`Learn more about ${topic}`, "Try again for a better story"],
-    retryCount: retryCount,
+    retryCount,
   };
 }
 
-async function callLovableAI(prompt: string, systemPrompt: string, config: any) {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+async function callKieAI(prompt: string, systemPrompt: string) {
+  const apiKey = Deno.env.get("KIE_API_KEY");
   if (!apiKey) {
-    throw new Error("LOVABLE_API_KEY missing in environment");
+    throw new Error("KIE_API_KEY missing in environment");
   }
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch(KIE_API_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash-openai",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
-      temperature: config.temperature,
-      max_tokens: config.max_tokens,
+      stream: false,
+      include_thoughts: false,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "structured_output",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              content: { type: "string" },
+              takeaway: { type: "string" },
+              emotions: { type: "array", items: { type: "string" } },
+              keyPoints: { type: "array", items: { type: "string" } },
+            },
+            required: ["title", "content", "takeaway", "emotions", "keyPoints"],
+            title: "Story",
+            description: "An educational story in JSON format",
+          },
+        },
+      },
     }),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`AI Gateway error (${response.status}): ${err.substring(0, 200)}`);
+    throw new Error(`Kie AI error (${response.status}): ${err.substring(0, 200)}`);
   }
 
   const data = await response.json();
-  const text = data.choices?.[0]?.message?.content || "";
-  return text;
+  return data.choices?.[0]?.message?.content || "";
 }
 
 export async function generateStoryWithLLM(topic: string, userPreferences?: any) {
   try {
     console.log("Starting story generation for topic:", topic);
-    if (userPreferences) {
-      console.log("With user preferences:", JSON.stringify(userPreferences));
-    }
 
-    const topicAnalysis = await analyzeTopicEmotions(topic);
-    console.log("✅ Topic analysis done");
-
-    const character = generateCharacter(topic, topicAnalysis.category);
-    const modelConfig = userPreferences ? getModelConfig('personalized') : getModelConfig('story');
+    const character = generateCharacter(topic, "general");
 
     let personalizationContext = "";
     if (userPreferences) {
       personalizationContext = `
-      USER PREFERENCES (IMPORTANT - TAILOR THE STORY USING THESE):
+      USER PREFERENCES:
       - Reading Level: ${userPreferences.readingLevel || 'intermediate'}
-      - Interests: ${userPreferences.interests?.join(', ') || 'general'}
       - Language Style: ${userPreferences.languagePreference || 'hinglish'}
       - Age Group: ${userPreferences.ageGroup || 'teen to adult'}
-      - Learning Style: ${userPreferences.learningStyle || 'reading'}
-      ${userPreferences.previousTopics?.length ? `- Previous Topics: ${userPreferences.previousTopics.join(', ')}` : ''}
-      ${userPreferences.favoriteTopics?.length ? `- Favorite Topics: ${userPreferences.favoriteTopics.join(', ')}` : ''}
       `;
     }
 
-    const systemPrompt = `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller that outputs strictly valid JSON.`;
+    const systemPrompt = `You are an educational ${userPreferences?.languagePreference || 'Hinglish'} storyteller. Output strictly valid JSON.`;
 
-    const prompt = `
-Return ONLY a clean JSON object parseable by JSON.parse(). No markdown, no backticks, no explanations.
-
-Generate a ${userPreferences?.languagePreference || 'Hinglish'} story SPECIFICALLY about "${topic}" that:
-- Explains "${topic}" in detail with clear examples
-- Is educational and uses real-life scenarios
-- Mentions "${topic}" EXACTLY as written at least 5 times in the content and once in the title
-- Fully focuses on "${topic}"
+    const prompt = `Generate a ${userPreferences?.languagePreference || 'Hinglish'} educational story about "${topic}".
 
 Character: ${character.name}, who is ${character.traits}
-Emotions: ${topicAnalysis.emotions.join(", ")}
+
+Requirements:
+- Explain "${topic}" in detail with clear examples
+- Educational with real-life scenarios
+- Mention "${topic}" at least 5 times in content and once in title
+- Story should be 150-200 words
 
 ${personalizationContext}
 
-Output JSON must include:
-- title (must include "${topic}")
-- content (must mention "${topic}" at least 5 times)
-- takeaway (summarize importance of "${topic}")
-- emotions (array of strings)
-- keyPoints (array of strings, each mentioning "${topic}")
-${userPreferences ? '- difficulty (string indicating the reading level used)\n- personalizedFor (array of strings indicating which user preferences were considered)' : ''}
-`;
-
-    console.log("Prompt prepared, calling Lovable AI Gateway...");
+Return JSON with: title, content, takeaway, emotions (array), keyPoints (array)`;
 
     let retryCount = 0;
+    const maxRetries = 3;
     let lastError = "";
     let storyJson = null;
 
-    while (retryCount < modelConfig.maxRetries && !storyJson) {
+    while (retryCount < maxRetries && !storyJson) {
       try {
-        console.log(`🚀 Attempt ${retryCount + 1}/${modelConfig.maxRetries}`);
-
-        const text = await callLovableAI(prompt, systemPrompt, modelConfig);
-        console.log(`📝 Raw output (attempt ${retryCount + 1}):`, text.substring(0, 200) + "...");
+        console.log(`🚀 Attempt ${retryCount + 1}/${maxRetries}`);
+        const text = await callKieAI(prompt, systemPrompt);
+        console.log(`📝 Raw output (attempt ${retryCount + 1}):`, text.substring(0, 200));
 
         let clean = text.trim();
         clean = clean.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "").trim();
         const jsonMatch = clean.match(/\{[\s\S]*\}/);
         if (jsonMatch) clean = jsonMatch[0];
 
-        try {
-          storyJson = JSON.parse(clean);
-          console.log(`✅ Successfully parsed JSON on attempt ${retryCount + 1}`);
-        } catch (parseErr) {
-          console.error(`🛑 JSON parse failed on attempt ${retryCount + 1}:`, parseErr.message);
-          lastError = `JSON parse error: ${parseErr.message}`;
-          retryCount++;
-          if (retryCount < modelConfig.maxRetries) await new Promise(r => setTimeout(r, 1000));
-        }
-      } catch (requestErr) {
-        console.error(`🛑 Request error on attempt ${retryCount + 1}:`, requestErr.message);
-        lastError = `Request error: ${requestErr.message}`;
+        storyJson = JSON.parse(clean);
+        console.log(`✅ Parsed JSON on attempt ${retryCount + 1}`);
+      } catch (err) {
+        console.error(`🛑 Attempt ${retryCount + 1} failed:`, err.message);
+        lastError = err.message;
         retryCount++;
-        if (retryCount < modelConfig.maxRetries) await new Promise(r => setTimeout(r, 1000));
+        if (retryCount < maxRetries) await new Promise(r => setTimeout(r, 1000));
       }
     }
 
     if (!storyJson) {
-      console.error(`🛑 All ${modelConfig.maxRetries} attempts failed. Last error: ${lastError}`);
       return {
         ...createErrorStory(topic, lastError, retryCount),
         character: { name: character.name, emoji: character.emoji, traits: character.traits },
@@ -149,25 +138,7 @@ ${userPreferences ? '- difficulty (string indicating the reading level used)\n- 
       storyJson.emotions = ["educational", "inspiring"];
     }
 
-    if (!storyContainsTopic(storyJson, topic)) {
-      storyJson.content = `${storyJson.content}\n\nNote: This story might not fully explain "${topic}" as requested.`;
-      storyJson.qualityWarning = true;
-    }
-
-    if (retryCount > 0) {
-      storyJson.retryCount = retryCount;
-    }
-
-    if (userPreferences) {
-      const personalizedFor: string[] = [];
-      if (userPreferences.readingLevel) personalizedFor.push(`${userPreferences.readingLevel} reading level`);
-      if (userPreferences.languagePreference) personalizedFor.push(`${userPreferences.languagePreference} language style`);
-      if (userPreferences.learningStyle) personalizedFor.push(`${userPreferences.learningStyle} learning style`);
-      if (userPreferences.previousTopics?.length) personalizedFor.push(`previous topic knowledge`);
-      if (userPreferences.favoriteTopics?.length) personalizedFor.push(`favorite topics`);
-      if (personalizedFor.length > 0) storyJson.personalizedFor = personalizedFor;
-      if (userPreferences.readingLevel) storyJson.difficulty = userPreferences.readingLevel;
-    }
+    if (retryCount > 0) storyJson.retryCount = retryCount;
 
     return {
       ...storyJson,
@@ -175,23 +146,9 @@ ${userPreferences ? '- difficulty (string indicating the reading level used)\n- 
       topic,
     };
   } catch (err) {
-    console.log("🛑 Fatal error in story generation:", err.message);
+    console.log("🛑 Fatal error:", err.message);
     throw err;
   }
 }
 
 export const generateStoryWithGemini = generateStoryWithLLM;
-
-function normalizeTopic(topic: string) {
-  return topic.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function storyContainsTopic(story: any, topic: string) {
-  const normalizedTopic = normalizeTopic(topic);
-  const topicWords = normalizedTopic.split(" ");
-  const content = story.content?.toLowerCase() || "";
-  const title = story.title?.toLowerCase() || "";
-  const contentMatch = topicWords.some((w: string) => content.includes(w)) || content.includes(normalizedTopic);
-  const titleMatch = topicWords.some((w: string) => title.includes(w)) || title.includes(normalizedTopic);
-  return contentMatch && titleMatch && content.length > 30;
-}
